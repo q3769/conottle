@@ -84,6 +84,11 @@ Both builder parameters are optional.
 - `activeClientLimit` is the throttle/maximum number of clients that can be serviced in parallel. If omitted, the
   default is unbounded - `Integer.MAX_VALUE`.
 
+Note that there is no limit on how many overall clients or tasks the API can support. E.g. the `activeClientLimit`
+parameter only limits on the concurrent number of clients whose tasks are actively executing in parallel at any given
+moment. Excessive clients/tasks will have to wait for active ones to complete before proceeding - a.k.a. the throttling
+effect.
+
 Each throttled client has its own dedicated executor. The executor is backed by a thread pool of size `throttleLimit`.
 Therefore, a client/executor's task execution concurrency will never go beyond, and always be throttled at
 its `throttleLimit`.
@@ -99,7 +104,7 @@ ConcurrentThrottle conottle = new Conottle.Builder().build();
 ```
 
 Builder parameters can also be individually provided. E.g. a conottle instance from the following builder throttles the
-max concurrency of each client's tasks at 4, and has no limit on the total number of clients in parallel:
+max concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
 
 ```aidl
 ConcurrentThrottle conottle = new Conottle.Builder().throttleLimit(4).build();
