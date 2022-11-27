@@ -22,7 +22,7 @@ Java 8 or better
 
 ### API
 
-```aidl
+```java
 public interface ConcurrentThrottler {
     /**
      * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
@@ -44,7 +44,7 @@ public interface ConcurrentThrottler {
 
 ### Sample usage
 
-```aidl
+```java
 class submit {
     @Test
     void customized() throws ExecutionException, InterruptedException {
@@ -99,13 +99,13 @@ the `throttleLimit` of each client/executor, multiplied by the `activeClientLimi
 An all-default builder builds a conottle instance that has unbounded `activeClientLimit`, while the `throttleLimit` of
 each client is set at `Runtime.getRuntime().availableProcessors()`:
 
-```aidl
+```java
 ConcurrentThrottler conottle = new Conottle.Builder().build();
 ```
 
 Builder parameters can also be individually provided. E.g. a conottle instance from the following builder throttles the
 max concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
 
-```aidl
+```java
 ConcurrentThrottler conottle = new Conottle.Builder().throttleLimit(4).build();
 ```
