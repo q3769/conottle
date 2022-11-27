@@ -222,14 +222,15 @@ public final class Conottle implements ConcurrentThrottle {
             return (r, e) -> {
                 if (pendingTasks.decrementAndGet() == 0) {
                     trace.log("deactivating executor {}...", executorId);
-                    ExecutorService toReturn = activeExecutors.remove(executorId).throttlingExecutorService;
+                    ThrottledExecutor deactivated = activeExecutors.remove(executorId);
+                    assert deactivated == this;
                     try {
-                        throttlingExecutorServicePool.returnObject(toReturn);
+                        throttlingExecutorServicePool.returnObject(throttlingExecutorService);
                     } catch (Exception ex) {
                         trace.atWarn()
                                 .log(ex,
-                                        "ignoring failure to return {} to pool {}",
-                                        toReturn,
+                                        "ignoring failure of returning {} to {}",
+                                        throttlingExecutorService,
                                         throttlingExecutorServicePool);
                     }
                 }
