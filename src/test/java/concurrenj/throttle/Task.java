@@ -25,31 +25,25 @@
 package concurrenj.throttle;
 
 import elf4j.Logger;
-import lombok.Data;
+import lombok.Getter;
 import lombok.ToString;
 
 import java.time.Duration;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import static org.awaitility.Awaitility.await;
 
-@Data
 @ToString
+@Getter
 public class Task implements Callable<Task>, Runnable {
     private static final Logger trace = Logger.instance(Task.class).atTrace();
-    final Object taskId;
-    final Duration minDuration;
-    long startTimeMillis;
-    long endTimeMillis;
-
-    String excutionThreadName;
-    boolean complete;
-    private Duration pollInterval;
-
-    public Task(Duration minDuration) {
-        this(UUID.randomUUID(), minDuration);
-    }
+    private final Object taskId;
+    private final Duration minDuration;
+    private final Duration pollInterval;
+    private long startTimeMillis;
+    private long endTimeMillis;
+    private String executionThreadName;
+    private boolean complete;
 
     public Task(Object taskId, Duration minDuration) {
         this.taskId = taskId;
@@ -60,8 +54,8 @@ public class Task implements Callable<Task>, Runnable {
     @Override
     public Task call() {
         this.startTimeMillis = System.currentTimeMillis();
-        this.excutionThreadName = Thread.currentThread().getName();
-        trace.log("{} started to run on thread {}", this, this.excutionThreadName);
+        this.executionThreadName = Thread.currentThread().getName();
+        trace.log("{} started to run by {}", this, this.executionThreadName);
         this.complete = true;
         await().pollInterval(pollInterval).atLeast(minDuration).until(this::isComplete);
         this.endTimeMillis = System.currentTimeMillis();
@@ -69,25 +63,15 @@ public class Task implements Callable<Task>, Runnable {
         return this;
     }
 
+    @Override
+    public void run() {
+        this.call();
+    }
+
     public Duration getActualDuration() {
         if (!isComplete()) {
             throw new IllegalStateException(this + " is not complete");
         }
         return Duration.ofMillis(this.endTimeMillis - this.startTimeMillis);
-    }
-
-    @Override
-    public void run() {
-        try {
-            this.call();
-        } catch (Exception e) {
-            throw new UncheckedCallException(e);
-        }
-    }
-
-    static class UncheckedCallException extends RuntimeException {
-        public UncheckedCallException(Exception e) {
-            super(e);
-        }
     }
 }
