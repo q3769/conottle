@@ -76,7 +76,7 @@ class submit {
 }
 ```
 
-Both builder parameters are optional.
+Both builder parameters are optional:
 
 - `throttleLimit` is the throttle/maximum concurrency with which a given client's tasks can execute. If omitted, the
   default is the number of the available processors to the JVM runtime - `Runtime.getRuntime().availableProcessors()`.
