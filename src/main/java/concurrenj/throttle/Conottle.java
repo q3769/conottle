@@ -119,8 +119,8 @@ public final class Conottle implements ConcurrentThrottle {
         }
     }
 
-    private static class UncheckedCallException extends RuntimeException {
-        public UncheckedCallException(Exception e) {
+    private static class UncheckedTaskCallException extends RuntimeException {
+        public UncheckedTaskCallException(Exception e) {
             super(e);
         }
     }
@@ -211,7 +211,7 @@ public final class Conottle implements ConcurrentThrottle {
                 try {
                     return task.call();
                 } catch (Exception e) {
-                    throw new UncheckedCallException(e);
+                    throw new UncheckedTaskCallException(e);
                 }
             }, throttlingExecutorService);
             resultFuture.whenCompleteAsync(decrementPendingTasksAndMayDeactivateExecutor(), ADMIN_THREAD_POOL);
