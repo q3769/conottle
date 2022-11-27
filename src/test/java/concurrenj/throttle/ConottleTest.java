@@ -44,63 +44,51 @@ class ConottleTest {
     @Nested
     class submit {
         @Test
-        void customizedConottle() {
-            int maxActiveClients = 4;
-            int throttleLimit = 3;
-            Conottle conottle =
-                    new Conottle.Builder().throttleLimit(throttleLimit).maxActiveClients(maxActiveClients).build();
-            String clientId1 = "clientId1";
-            String clientId2 = "clientId2";
-            int totalTasksPerClient = 10;
+        void customized() {
+            test(new Conottle.Builder().throttleLimit(3).maxActiveClients(4).build());
+        }
 
-            List<Future<Task>> futures = new ArrayList<>();
-            for (int i = 0; i < totalTasksPerClient; i++) {
-                futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, Duration.of(100, MILLIS)), clientId1));
-                futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, Duration.of(100, MILLIS)), clientId2));
-            }
+        @Test
+        void customizedThrottleLimit() {
+            test(new Conottle.Builder().throttleLimit(3).build());
+        }
 
-            int totalClients = 2;
-            assertEquals(totalClients, conottle.sizeOfActiveExecutors());
-            for (Future<Task> future : futures) {
-                info.log("{} will not get done right away", future);
-                assertFalse(future.isDone());
-            }
-            for (Future<Task> future : futures) {
-                info.log("but eventually {} will be done", future);
-                await().until(future::isDone);
-            }
-            info.log("no active executor lingers when all tasks complete");
-            await().until(() -> conottle.sizeOfActiveExecutors() == 0);
+        @Test
+        void customizedMaxActiveClients() {
+            test(new Conottle.Builder().maxActiveClients(4).build());
         }
     }
 
     @Nested
     class execute {
         @Test
-        void defaultBuilder() {
-            Conottle conottle = new Conottle.Builder().build();
-            String clientId1 = "clientId1";
-            String clientId2 = "clientId2";
-            int totalTasksPerClient = 10;
-
-            List<Future<Void>> futures = new ArrayList<>();
-            for (int i = 0; i < totalTasksPerClient; i++) {
-                futures.add(conottle.execute(new Task(clientId1 + "-task-" + i, Duration.of(100, MILLIS)), clientId1));
-                futures.add(conottle.execute(new Task(clientId2 + "-task-" + i, Duration.of(100, MILLIS)), clientId2));
-            }
-
-            int totalClients = 2;
-            assertEquals(totalClients, conottle.sizeOfActiveExecutors());
-            for (Future<Void> future : futures) {
-                info.log("{} will not get done right away", future);
-                assertFalse(future.isDone());
-            }
-            for (Future<Void> future : futures) {
-                info.log("but eventually {} will be done", future);
-                await().until(future::isDone);
-            }
-            info.log("no executor lingers when all tasks complete");
-            await().until(() -> conottle.sizeOfActiveExecutors() == 0);
+        void allDefault() {
+            test(new Conottle.Builder().build());
         }
+    }
+
+    private static void test(Conottle conottle) {
+        String clientId1 = "clientId1";
+        String clientId2 = "clientId2";
+        int totalTasksPerClient = 10;
+
+        List<Future<Void>> futures = new ArrayList<>();
+        for (int i = 0; i < totalTasksPerClient; i++) {
+            futures.add(conottle.execute(new Task(clientId1 + "-task-" + i, Duration.of(100, MILLIS)), clientId1));
+            futures.add(conottle.execute(new Task(clientId2 + "-task-" + i, Duration.of(100, MILLIS)), clientId2));
+        }
+
+        int totalClients = 2;
+        assertEquals(totalClients, conottle.sizeOfActiveExecutors());
+        for (Future<Void> future : futures) {
+            info.log("{} will not get done right away", future);
+            assertFalse(future.isDone());
+        }
+        for (Future<Void> future : futures) {
+            info.log("but eventually {} will be done", future);
+            await().until(future::isDone);
+        }
+        info.log("no active executor lingers when all tasks complete");
+        await().until(() -> conottle.sizeOfActiveExecutors() == 0);
     }
 }
