@@ -79,14 +79,14 @@ Both builder parameters are optional.
 - `throttleLimit` is the throttle/maximum concurrency with which a given client's tasks can execute. If omitted, the
   default is the number of the available processors to the JVM runtime - `Runtime.getRuntime().availableProcessors()`.
 
-- `activeClientLimit` is the throttle/maximum total number of clients that can be serviced in parallel. If omitted, the
+- `activeClientLimit` is the throttle/maximum number of clients that can be serviced in parallel. If omitted, the
   default is unbounded - `Integer.MAX_VALUE`.
 
 Each throttled client has its own dedicated executor. The executor is backed by a thread pool of size `throttleLimit`.
-Therefore, the client/executor's task execution concurrency will never go beyond, and always be throttled at
-the `throttleLimit`.
+Therefore, a client/executor's task execution concurrency will never go beyond, and always be throttled at
+its `throttleLimit`.
 
-If both builder parameters are provided, the global maximum number of concurrently running threads is
+If both builder parameters are provided, the global maximum number of concurrent-execution threads is
 the `throttleLimit` of each client/executor, multiplied by the `activeClientLimit`.
 
 An all-default builder builds a conottle instance that has unbounded on the `activeClientLimit`, while
