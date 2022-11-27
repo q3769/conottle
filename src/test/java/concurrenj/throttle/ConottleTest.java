@@ -53,7 +53,7 @@ class ConottleTest {
         }
 
         int totalClients = 2;
-        assertEquals(totalClients, conottle.sizeOfActiveExecutors());
+        assertEquals(totalClients, conottle.sizeOfActiveExecutors(), "should be 1:1 between a client and its executor");
         for (Future<Void> future : futures) {
             info.log("{} will not get done right away", future);
             assertFalse(future.isDone());
@@ -82,7 +82,9 @@ class ConottleTest {
             }
 
             int totalClients = 2;
-            assertEquals(totalClients, conottle.sizeOfActiveExecutors());
+            assertEquals(totalClients,
+                    conottle.sizeOfActiveExecutors(),
+                    "should be 1:1 between a client and its executor");
             for (Future<Task> future : futures) {
                 info.log("{} will not get done right away", future);
                 assertFalse(future.isDone());

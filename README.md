@@ -60,7 +60,7 @@ class submit {
         }
 
         int totalClients = 2;
-        assertEquals(totalClients, conottle.sizeOfActiveExecutors());
+        assertEquals(totalClients, conottle.sizeOfActiveExecutors(), "should be 1:1 between a client and its executor");
         for (Future<Task> future : futures) {
             info.log("{} will not get done right away", future);
             assertFalse(future.isDone());
@@ -100,12 +100,12 @@ An all-default builder builds a conottle instance that has unbounded `activeClie
 each client is set at `Runtime.getRuntime().availableProcessors()`:
 
 ```java
-ConcurrentThrottler conottle = new Conottle.Builder().build();
+ConcurrentThrottler conottle=new Conottle.Builder().build();
 ```
 
 Builder parameters can also be individually provided. E.g. a conottle instance from the following builder throttles the
 max concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
 
 ```java
-ConcurrentThrottler conottle = new Conottle.Builder().throttleLimit(4).build();
+ConcurrentThrottler conottle=new Conottle.Builder().throttleLimit(4).build();
 ```
