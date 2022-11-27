@@ -58,7 +58,7 @@ public final class Conottle implements ConcurrentThrottle {
         if (throttleLimit == 0) {
             throttleLimit = DEFAULT_THROTTLE;
         }
-        int maxActiveExecutors = builder.maxActiveExecutors;
+        int maxActiveExecutors = builder.maxActiveClients;
         if (maxActiveExecutors < 1) {
             maxActiveExecutors = DEFAULT_MAX_ACTIVE_EXECUTORS;
         }
@@ -71,13 +71,13 @@ public final class Conottle implements ConcurrentThrottle {
     }
 
     @Override
-    public Future<Void> execute(Runnable command, Object throttleId) {
-        return new MinimalFuture<>(activeExecutors.computeIfAbsent(throttleId, getPooledExecutor()).execute(command));
+    public Future<Void> execute(Runnable command, Object clientId) {
+        return new MinimalFuture<>(activeExecutors.computeIfAbsent(clientId, getPooledExecutor()).execute(command));
     }
 
     @Override
-    public <V> Future<V> submit(Callable<V> task, Object throttleId) {
-        return new MinimalFuture<>(activeExecutors.computeIfAbsent(throttleId, getPooledExecutor()).submit(task));
+    public <V> Future<V> submit(Callable<V> task, Object clientId) {
+        return new MinimalFuture<>(activeExecutors.computeIfAbsent(clientId, getPooledExecutor()).submit(task));
     }
 
     private Function<Object, ActiveExecutor> getPooledExecutor() {
@@ -96,10 +96,10 @@ public final class Conottle implements ConcurrentThrottle {
 
     public static final class Builder {
         private int throttleLimit;
-        private int maxActiveExecutors;
+        private int maxActiveClients;
 
-        public Builder maxActiveExecutors(int val) {
-            this.maxActiveExecutors = val;
+        public Builder maxActiveClients(int val) {
+            this.maxActiveClients = val;
             return this;
         }
 

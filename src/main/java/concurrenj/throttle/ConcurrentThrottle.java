@@ -29,18 +29,18 @@ import java.util.concurrent.Future;
 
 public interface ConcurrentThrottle {
     /**
-     * @param command    {@link Runnable} command to run asynchronously. All such commands under the same
-     *                   {@code throttleId} are run in parallel, albeit throttled at a maximum concurrency.
-     * @param throttleId A key representing a client whose tasks are throttled while running in parallel
+     * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
+     *                 are run in parallel, albeit throttled at a maximum concurrency.
+     * @param clientId A key representing a client whose tasks are throttled while running in parallel
      * @return {@link Future} holding the run status of the {@code command}
      */
-    Future<Void> execute(Runnable command, Object throttleId);
+    Future<Void> execute(Runnable command, Object clientId);
 
     /**
-     * @param task       {@link Callable} task to run asynchronously. All such tasks under the same {@code throttleId}
-     *                   are run in parallel, albeit throttled at a maximum concurrency.
-     * @param throttleId A key representing a client whose tasks are throttled while running in parallel
+     * @param task     {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
+     *                 run in parallel, albeit throttled at a maximum concurrency.
+     * @param clientId A key representing a client whose tasks are throttled while running in parallel
      * @return {@link Future} representing the result of the {@code task}
      */
-    <V> Future<V> submit(Callable<V> task, Object throttleId);
+    <V> Future<V> submit(Callable<V> task, Object clientId);
 }

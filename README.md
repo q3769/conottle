@@ -21,20 +21,20 @@ Java 8 or better
 ```aidl
 public interface ConcurrentThrottle {
     /**
-     * @param command    {@link Runnable} command to run asynchronously. All such commands under the same
-     *                   {@code throttleId} are run in parallel, albeit throttled at a maximum concurrency.
-     * @param throttleId A key representing a client whose tasks are throttled while running in parallel
+     * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
+     *                 are run in parallel, albeit throttled at a maximum concurrency.
+     * @param clientId A key representing a client whose tasks are throttled while running in parallel
      * @return {@link Future} holding the run status of the {@code command}
      */
-    Future<Void> execute(Runnable command, Object throttleId);
+    Future<Void> execute(Runnable command, Object clientId);
 
     /**
-     * @param task       {@link Callable} task to run asynchronously. All such tasks under the same {@code throttleId}
-     *                   are run in parallel, albeit throttled at a maximum concurrency.
-     * @param throttleId A key representing a client whose tasks are throttled while running in parallel
+     * @param task     {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
+     *                 run in parallel, albeit throttled at a maximum concurrency.
+     * @param clientId A key representing a client whose tasks are throttled while running in parallel
      * @return {@link Future} representing the result of the {@code task}
      */
-    <V> Future<V> submit(Callable<V> task, Object throttleId);
+    <V> Future<V> submit(Callable<V> task, Object clientId);
 }
 ```
 
@@ -44,10 +44,10 @@ public interface ConcurrentThrottle {
 class submit {
     @Test
     void customizedConottle() {
-        int maxActiveExecutors = 4;
+        int maxActiveClients = 4;
         int throttleLimit = 3;
         Conottle conottle =
-                new Conottle.Builder().throttleLimit(throttleLimit).maxActiveExecutors(maxActiveExecutors).build();
+                new Conottle.Builder().throttleLimit(throttleLimit).maxActiveClients(maxActiveClients).build();
         String clientId1 = "clientId1";
         String clientId2 = "clientId2";
         int totalTasksPerClient = 10;
@@ -74,20 +74,29 @@ class submit {
 }
 ```
 
-Both builder parameters - `throttleLimit` and `maxActiveExecutors` - provided in the above sample are optional. If both
-are provided, then potentially the max total number of concurrent running threads is the `throttleLimit` on each
-executor multiplied by the `maxActiveExecutors`.
+Both builder parameters are optional.
 
-An all-default builder builds a conottle instance that has no limit (`Integer.MAX_VALUE`) on the `maxActiveExecutors`,
-while the default `throttleLimit` for each client's tasks is the number of the available processors of the JVM
-runtime - `Runtime.getRuntime().availableProcessors()`:
+- `throttleLimit` is the maximum concurrency a given client's tasks can execute. If omitted, the default is the number
+  of the available processors of the JVM runtime - `Runtime.getRuntime().availableProcessors()`.
+
+- `maxActiveClients` is the maximum total number of clients that can be serviced in parallel. If omitted, the default
+  is no limit - `Integer.MAX_VALUE`.
+
+Each client has its own dedicated executor. The executor is backed by a thread pool of size `throttleLimit`. Therefore,
+the client/executor's task execution concurrency will never go beyond, and always be throttled at the `throttleLimit`.
+
+If both builder parameters are provided, the global maximum number of concurrent running threads is the `throttleLimit`
+on each executor multiplied by the `maxActiveClients`.
+
+An all-default builder builds a conottle instance that has no limit the `maxActiveClients`, while the `throttleLimit` of
+each client is set at `Runtime.getRuntime().availableProcessors()`:
 
 ```aidl
 ConcurrentThrottle conottle = new Conottle.Builder().build();
 ```
 
-Builder parameters can also be individually provided. E.g. a conottle instance from this builder throttles the max
-concurrency of each client's tasks at 4, and has no limit on the total number of clients in parallel:
+Builder parameters can also be individually provided. E.g. a conottle instance from the following builder throttles the
+max concurrency of each client's tasks at 4, and has no limit on the total number of clients in parallel:
 
 ```aidl
 ConcurrentThrottle conottle = new Conottle.Builder().throttleLimit(4).build();

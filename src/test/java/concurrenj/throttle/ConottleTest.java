@@ -45,10 +45,10 @@ class ConottleTest {
     class submit {
         @Test
         void customizedConottle() {
-            int maxActiveExecutors = 4;
+            int maxActiveClients = 4;
             int throttleLimit = 3;
             Conottle conottle =
-                    new Conottle.Builder().throttleLimit(throttleLimit).maxActiveExecutors(maxActiveExecutors).build();
+                    new Conottle.Builder().throttleLimit(throttleLimit).maxActiveClients(maxActiveClients).build();
             String clientId1 = "clientId1";
             String clientId2 = "clientId2";
             int totalTasksPerClient = 10;
