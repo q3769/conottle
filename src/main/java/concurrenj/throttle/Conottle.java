@@ -180,7 +180,7 @@ public final class Conottle implements ConcurrentThrottle {
         @Override
         public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode)
                 throws Exception {
-            trace.log("destroying {} with mode {}...", pooledExecutorService, destroyMode);
+            trace.log("destroying {} in {}...", pooledExecutorService, destroyMode);
             pooledExecutorService.getObject().shutdown();
             super.destroyObject(pooledExecutorService, destroyMode);
         }
