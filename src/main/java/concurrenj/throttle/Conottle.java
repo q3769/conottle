@@ -26,6 +26,7 @@ package concurrenj.throttle;
 
 import elf4j.Logger;
 import lombok.NonNull;
+import lombok.ToString;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.DestroyMode;
@@ -182,12 +183,13 @@ public final class Conottle implements ConcurrentThrottle {
         @Override
         public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode)
                 throws Exception {
-            trace.log("destroying {} in {}...", pooledExecutorService, destroyMode);
+            trace.log("destroying {} with {}...", pooledExecutorService, destroyMode);
             pooledExecutorService.getObject().shutdown();
             super.destroyObject(pooledExecutorService, destroyMode);
         }
     }
 
+    @ToString
     private class ThrottledExecutor {
         private final Logger trace = Logger.instance(ThrottledExecutor.class).atTrace();
         private final Object executorId;
@@ -221,22 +223,32 @@ public final class Conottle implements ConcurrentThrottle {
         }
 
         private <V> BiConsumer<V, Throwable> decrementPendingTasksAndMayDeactivateExecutor() {
-            return (r, e) -> {
+            return (r, e) -> activeExecutors.compute(executorId, (sameId, self) -> {
+                assert self == this;
                 if (pendingTasks.decrementAndGet() == 0) {
                     trace.log("deactivating executor {}...", executorId);
-                    ThrottledExecutor deactivated = activeExecutors.remove(executorId);
-                    assert deactivated == this;
-                    try {
-                        throttlingExecutorServicePool.returnObject(throttlingExecutorService);
-                    } catch (Exception ex) {
-                        trace.atWarn()
-                                .log(ex,
-                                        "ignoring failure of returning {} to {}",
-                                        throttlingExecutorService,
-                                        throttlingExecutorServicePool);
-                    }
+                    returnThrottlingExecutorServiceToPool();
+                    return null;
+                } else {
+                    trace.log("{} remains active...", this);
+                    return self;
                 }
-            };
+            });
+        }
+
+        private void returnThrottlingExecutorServiceToPool() {
+            ADMIN_THREAD_POOL.execute(() -> {
+                try {
+                    trace.log("returning {} to {}", throttlingExecutorService, throttlingExecutorServicePool);
+                    throttlingExecutorServicePool.returnObject(throttlingExecutorService);
+                } catch (Exception ex) {
+                    trace.atWarn()
+                            .log(ex,
+                                    "ignoring failure of returning {} to {}",
+                                    throttlingExecutorService,
+                                    throttlingExecutorServicePool);
+                }
+            });
         }
     }
 }

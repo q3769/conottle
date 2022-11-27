@@ -45,7 +45,7 @@ public interface ConcurrentThrottle {
 ```aidl
 class submit {
     @Test
-    void customized() {
+    void customized() throws ExecutionException, InterruptedException {
         Conottle conottle = new Conottle.Builder().throttleLimit(3).maxActiveClients(4).build();
         String clientId1 = "clientId1";
         String clientId2 = "clientId2";
@@ -53,8 +53,8 @@ class submit {
 
         List<Future<Task>> futures = new ArrayList<>();
         for (int i = 0; i < totalTasksPerClient; i++) {
-            futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, Duration.of(100, MILLIS)), clientId1));
-            futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, Duration.of(100, MILLIS)), clientId2));
+            futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
+            futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
         }
 
         int totalClients = 2;
@@ -66,11 +66,7 @@ class submit {
         for (Future<Task> future : futures) {
             info.log("but eventually {} will be done", future);
             await().until(future::isDone);
-            try {
-                assertTrue(future.get().isComplete());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            assertTrue(future.get().isComplete());
         }
         info.log("no active executor lingers when all tasks complete");
         await().until(() -> conottle.sizeOfActiveExecutors() == 0);
@@ -84,13 +80,14 @@ Both builder parameters are optional.
   the number of the available processors to the JVM runtime - `Runtime.getRuntime().availableProcessors()`.
 
 - `maxActiveClients` is the maximum total number of clients that can be serviced in parallel. If omitted, the default
-  is no limit - `Integer.MAX_VALUE`.
+  is unlimited - `Integer.MAX_VALUE`.
 
-Each client has its own dedicated executor. The executor is backed by a thread pool of size `throttleLimit`. Therefore,
-the client/executor's task execution concurrency will never go beyond, and always be throttled at the `throttleLimit`.
+Each throttled client has its own dedicated executor. The executor is backed by a thread pool of size `throttleLimit`.
+Therefore, the client/executor's task execution concurrency will never go beyond, and always be throttled at
+the `throttleLimit`.
 
 If both builder parameters are provided, the global maximum number of concurrently running threads is
-the `throttleLimit` of each client/executor multiplied by the `maxActiveClients`.
+the `throttleLimit` of each client/executor, multiplied by the `maxActiveClients`.
 
 An all-default builder builds a conottle instance that has no limit on the `maxActiveClients`, while the `throttleLimit`
 of each client is set at `Runtime.getRuntime().availableProcessors()`:

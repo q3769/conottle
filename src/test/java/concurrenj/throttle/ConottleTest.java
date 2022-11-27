@@ -34,12 +34,12 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import static java.time.temporal.ChronoUnit.MILLIS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConottleTest {
     private static final Logger info = Logger.instance(ConottleTest.class).atInfo();
+    private static final Duration MIN_TASK_DURATION = Duration.ofMillis(100);
 
     private static void testExecute(Conottle conottle) {
         String clientId1 = "clientId1";
@@ -48,8 +48,8 @@ class ConottleTest {
 
         List<Future<Void>> futures = new ArrayList<>();
         for (int i = 0; i < totalTasksPerClient; i++) {
-            futures.add(conottle.execute(new Task(clientId1 + "-task-" + i, Duration.of(100, MILLIS)), clientId1));
-            futures.add(conottle.execute(new Task(clientId2 + "-task-" + i, Duration.of(100, MILLIS)), clientId2));
+            futures.add(conottle.execute(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
+            futures.add(conottle.execute(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
         }
 
         int totalClients = 2;
@@ -69,7 +69,7 @@ class ConottleTest {
     @Nested
     class submit {
         @Test
-        void customized() {
+        void customized() throws ExecutionException, InterruptedException {
             Conottle conottle = new Conottle.Builder().throttleLimit(3).maxActiveClients(4).build();
             String clientId1 = "clientId1";
             String clientId2 = "clientId2";
@@ -77,8 +77,8 @@ class ConottleTest {
 
             List<Future<Task>> futures = new ArrayList<>();
             for (int i = 0; i < totalTasksPerClient; i++) {
-                futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, Duration.of(100, MILLIS)), clientId1));
-                futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, Duration.of(100, MILLIS)), clientId2));
+                futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
+                futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
             }
 
             int totalClients = 2;
@@ -90,11 +90,7 @@ class ConottleTest {
             for (Future<Task> future : futures) {
                 info.log("but eventually {} will be done", future);
                 await().until(future::isDone);
-                try {
-                    assertTrue(future.get().isComplete());
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
+                assertTrue(future.get().isComplete());
             }
             info.log("no active executor lingers when all tasks complete");
             await().until(() -> conottle.sizeOfActiveExecutors() == 0);
