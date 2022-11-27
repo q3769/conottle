@@ -69,7 +69,7 @@ class ConottleTest {
                 info.log("but eventually {} will be done", future);
                 await().until(future::isDone);
             }
-            info.log("no executor lingers when all tasks complete");
+            info.log("no active executor lingers when all tasks complete");
             await().until(() -> conottle.sizeOfActiveExecutors() == 0);
         }
     }
