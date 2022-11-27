@@ -70,7 +70,7 @@ class ConottleTest {
     class submit {
         @Test
         void customized() throws ExecutionException, InterruptedException {
-            Conottle conottle = new Conottle.Builder().throttleLimit(3).activeClientLimit(4).build();
+            Conottle conottle = new Conottle.Builder().throttleLimit(4).activeClientLimit(50).build();
             String clientId1 = "clientId1";
             String clientId2 = "clientId2";
             int totalTasksPerClient = 10;
