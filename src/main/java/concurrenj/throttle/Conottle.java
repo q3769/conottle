@@ -26,6 +26,7 @@ package concurrenj.throttle;
 
 import elf4j.Logger;
 import lombok.NonNull;
+import net.jcip.annotations.ThreadSafe;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.DestroyMode;
 import org.apache.commons.pool2.ObjectPool;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+@ThreadSafe
 public final class Conottle implements ConcurrentThrottle {
     private static final ForkJoinPool ADMIN_THREAD_POOL = ForkJoinPool.commonPool();
     private static final int DEFAULT_MAX_ACTIVE_EXECUTORS = Integer.MAX_VALUE;
