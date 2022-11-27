@@ -43,11 +43,8 @@ public interface ConcurrentThrottle {
 ```aidl
 class submit {
     @Test
-    void customizedConottle() {
-        int maxActiveClients = 4;
-        int throttleLimit = 3;
-        Conottle conottle =
-                new Conottle.Builder().throttleLimit(throttleLimit).maxActiveClients(maxActiveClients).build();
+    void customized() {
+        Conottle conottle = new Conottle.Builder().throttleLimit(3).maxActiveClients(4).build();
         String clientId1 = "clientId1";
         String clientId2 = "clientId2";
         int totalTasksPerClient = 10;
@@ -67,8 +64,13 @@ class submit {
         for (Future<Task> future : futures) {
             info.log("but eventually {} will be done", future);
             await().until(future::isDone);
+            try {
+                assertTrue(future.get().isComplete());
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
         }
-        info.log("no executor lingers when all tasks complete");
+        info.log("no active executor lingers when all tasks complete");
         await().until(() -> conottle.sizeOfActiveExecutors() == 0);
     }
 }

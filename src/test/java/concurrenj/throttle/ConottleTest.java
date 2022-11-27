@@ -66,51 +66,38 @@ class ConottleTest {
         await().until(() -> conottle.sizeOfActiveExecutors() == 0);
     }
 
-    private static void testSubmit(Conottle conottle) {
-        String clientId1 = "clientId1";
-        String clientId2 = "clientId2";
-        int totalTasksPerClient = 10;
-
-        List<Future<Task>> futures = new ArrayList<>();
-        for (int i = 0; i < totalTasksPerClient; i++) {
-            futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, Duration.of(100, MILLIS)), clientId1));
-            futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, Duration.of(100, MILLIS)), clientId2));
-        }
-
-        int totalClients = 2;
-        assertEquals(totalClients, conottle.sizeOfActiveExecutors());
-        for (Future<Task> future : futures) {
-            info.log("{} will not get done right away", future);
-            assertFalse(future.isDone());
-        }
-        for (Future<Task> future : futures) {
-            info.log("but eventually {} will be done", future);
-            await().until(future::isDone);
-            try {
-                assertTrue(future.get().isComplete());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        info.log("no active executor lingers when all tasks complete");
-        await().until(() -> conottle.sizeOfActiveExecutors() == 0);
-    }
-
     @Nested
     class submit {
         @Test
         void customized() {
-            testSubmit(new Conottle.Builder().throttleLimit(3).maxActiveClients(4).build());
-        }
+            Conottle conottle = new Conottle.Builder().throttleLimit(3).maxActiveClients(4).build();
+            String clientId1 = "clientId1";
+            String clientId2 = "clientId2";
+            int totalTasksPerClient = 10;
 
-        @Test
-        void customizedThrottleLimit() {
-            testSubmit(new Conottle.Builder().throttleLimit(3).build());
-        }
+            List<Future<Task>> futures = new ArrayList<>();
+            for (int i = 0; i < totalTasksPerClient; i++) {
+                futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, Duration.of(100, MILLIS)), clientId1));
+                futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, Duration.of(100, MILLIS)), clientId2));
+            }
 
-        @Test
-        void customizedMaxActiveClients() {
-            testSubmit(new Conottle.Builder().maxActiveClients(4).build());
+            int totalClients = 2;
+            assertEquals(totalClients, conottle.sizeOfActiveExecutors());
+            for (Future<Task> future : futures) {
+                info.log("{} will not get done right away", future);
+                assertFalse(future.isDone());
+            }
+            for (Future<Task> future : futures) {
+                info.log("but eventually {} will be done", future);
+                await().until(future::isDone);
+                try {
+                    assertTrue(future.get().isComplete());
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            info.log("no active executor lingers when all tasks complete");
+            await().until(() -> conottle.sizeOfActiveExecutors() == 0);
         }
     }
 
@@ -119,6 +106,16 @@ class ConottleTest {
         @Test
         void allDefault() {
             testExecute(new Conottle.Builder().build());
+        }
+
+        @Test
+        void customizedThrottleLimit() {
+            testExecute(new Conottle.Builder().throttleLimit(3).build());
+        }
+
+        @Test
+        void customizedMaxActiveClients() {
+            testExecute(new Conottle.Builder().maxActiveClients(4).build());
         }
     }
 }
