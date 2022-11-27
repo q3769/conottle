@@ -47,7 +47,6 @@ public final class Conottle implements ConcurrentThrottle {
     private static final ForkJoinPool EXECUTOR_ADMIN_THREAD_POOL = ForkJoinPool.commonPool();
     private static final Duration MIN_EVICTABLE_IDLE_TIME = Duration.ofMinutes(5);
     private final ConcurrentMap<Object, ActiveExecutor> activeExecutors;
-
     private final ObjectPool<ExecutorService> executorPool;
 
     private Conottle(Builder builder) {
