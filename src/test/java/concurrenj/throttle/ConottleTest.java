@@ -113,5 +113,12 @@ class ConottleTest {
         void customizedMaxActiveClients() {
             testExecute(new Conottle.Builder().activeClientLimit(4).build());
         }
+
+        @Test
+        void noNegativeThrottleLimit() {
+            Conottle.Builder builder = new Conottle.Builder().throttleLimit(-1);
+
+            assertThrows(IllegalArgumentException.class, builder::build);
+        }
     }
 }

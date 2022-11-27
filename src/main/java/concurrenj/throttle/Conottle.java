@@ -43,12 +43,14 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 @ThreadSafe
+@ToString
 public final class Conottle implements ConcurrentThrottler {
     private static final ForkJoinPool ADMIN_THREAD_POOL = ForkJoinPool.commonPool();
     private static final int DEFAULT_MAX_ACTIVE_EXECUTORS = Integer.MAX_VALUE;
     private static final int DEFAULT_MIN_IDLE_EXECUTORS = 2;
     private static final int DEFAULT_THROTTLE = Runtime.getRuntime().availableProcessors();
     private static final Duration MIN_EVICTABLE_IDLE_TIME = Duration.ofMinutes(5);
+    private static final Logger info = Logger.instance(Conottle.class).atInfo();
     private final ConcurrentMap<Object, ThrottledExecutor> activeExecutors;
     private final ObjectPool<ExecutorService> throttlingExecutorServicePool;
 
@@ -68,6 +70,7 @@ public final class Conottle implements ConcurrentThrottler {
         this.throttlingExecutorServicePool =
                 new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(throttleLimit),
                         getThrottlingExecutorServicePoolConfig(maxActiveExecutors));
+        info.log("constructed {}", this);
     }
 
     private static GenericObjectPoolConfig<ExecutorService> getThrottlingExecutorServicePoolConfig(int maxTotal) {
