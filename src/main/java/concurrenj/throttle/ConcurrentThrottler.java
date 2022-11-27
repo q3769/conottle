@@ -27,7 +27,7 @@ package concurrenj.throttle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-public interface ConcurrentThrottle {
+public interface ConcurrentThrottler {
     /**
      * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
      *                 are run in parallel, albeit throttled at a maximum concurrency.
