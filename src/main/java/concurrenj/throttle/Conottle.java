@@ -97,7 +97,7 @@ public final class Conottle implements ConcurrentThrottle {
     }
 
     int sizeOfActiveExecutors() {
-        return this.activeExecutors.size();
+        return activeExecutors.size();
     }
 
     public static final class Builder {
@@ -169,7 +169,7 @@ public final class Conottle implements ConcurrentThrottle {
 
         @Override
         public ExecutorService create() {
-            return Executors.newFixedThreadPool(this.throttleLimit);
+            return Executors.newFixedThreadPool(throttleLimit);
         }
 
         @Override
@@ -200,7 +200,7 @@ public final class Conottle implements ConcurrentThrottle {
 
         public Future<Void> execute(Runnable command) {
             pendingTasks.incrementAndGet();
-            CompletableFuture<Void> resultFuture = CompletableFuture.runAsync(command, this.throttlingExecutorService);
+            CompletableFuture<Void> resultFuture = CompletableFuture.runAsync(command, throttlingExecutorService);
             resultFuture.whenCompleteAsync(decrementPendingTasksAndMayDeactivateExecutor(), ADMIN_THREAD_POOL);
             return resultFuture;
         }
@@ -213,7 +213,7 @@ public final class Conottle implements ConcurrentThrottle {
                 } catch (Exception e) {
                     throw new UncheckedCallException(e);
                 }
-            }, this.throttlingExecutorService);
+            }, throttlingExecutorService);
             resultFuture.whenCompleteAsync(decrementPendingTasksAndMayDeactivateExecutor(), ADMIN_THREAD_POOL);
             return resultFuture;
         }
@@ -221,16 +221,16 @@ public final class Conottle implements ConcurrentThrottle {
         private <V> BiConsumer<V, Throwable> decrementPendingTasksAndMayDeactivateExecutor() {
             return (r, e) -> {
                 if (pendingTasks.decrementAndGet() == 0) {
-                    trace.log("deactivating executor for throttle id {}...", this.executorId);
-                    ExecutorService toReturn = activeExecutors.remove(this.executorId).throttlingExecutorService;
+                    trace.log("deactivating executor {}...", executorId);
+                    ExecutorService toReturn = activeExecutors.remove(executorId).throttlingExecutorService;
                     try {
-                        Conottle.this.throttlingExecutorServicePool.returnObject(toReturn);
+                        throttlingExecutorServicePool.returnObject(toReturn);
                     } catch (Exception ex) {
                         trace.atWarn()
                                 .log(ex,
-                                        "ignoring failure to return executor {} to pool {}",
+                                        "ignoring failure to return {} to pool {}",
                                         toReturn,
-                                        Conottle.this.throttlingExecutorServicePool);
+                                        throttlingExecutorServicePool);
                     }
                 }
             };
