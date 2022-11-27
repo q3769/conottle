@@ -89,8 +89,8 @@ its `throttleLimit`.
 If both builder parameters are provided, the global maximum number of concurrent-execution threads is
 the `throttleLimit` of each client/executor, multiplied by the `activeClientLimit`.
 
-An all-default builder builds a conottle instance that has unbounded on the `activeClientLimit`, while
-the `throttleLimit` of each client is set at `Runtime.getRuntime().availableProcessors()`:
+An all-default builder builds a conottle instance that has unbounded `activeClientLimit`, while the `throttleLimit` of
+each client is set at `Runtime.getRuntime().availableProcessors()`:
 
 ```aidl
 ConcurrentThrottle conottle = new Conottle.Builder().build();
