@@ -46,7 +46,7 @@ public final class Conottle implements ConcurrentThrottle {
     private static final int DEFAULT_THROTTLE = Runtime.getRuntime().availableProcessors();
     private static final ForkJoinPool EXECUTOR_ADMIN_THREAD_POOL = ForkJoinPool.commonPool();
     private static final Duration MIN_EVICTABLE_IDLE_TIME = Duration.ofMinutes(5);
-    private final ConcurrentMap<Object, ActiveExecutor> activeExecutors;
+    private final ConcurrentMap<Object, ThrottledExecutor> activeExecutors;
     private final ObjectPool<ExecutorService> executorPool;
 
     private Conottle(Builder builder) {
@@ -61,12 +61,17 @@ public final class Conottle implements ConcurrentThrottle {
         if (maxActiveExecutors < 1) {
             maxActiveExecutors = DEFAULT_MAX_ACTIVE_EXECUTORS;
         }
-        activeExecutors = new ConcurrentHashMap<>();
+        this.activeExecutors = new ConcurrentHashMap<>();
+        this.executorPool = new GenericObjectPool<>(new ExecutorServiceFactory(throttleLimit),
+                getExecutorPoolConfig(maxActiveExecutors));
+    }
+
+    private static GenericObjectPoolConfig<ExecutorService> getExecutorPoolConfig(int maxActiveExecutors) {
         GenericObjectPoolConfig<ExecutorService> executorPoolConfig = new GenericObjectPoolConfig<>();
         executorPoolConfig.setMaxTotal(maxActiveExecutors);
         executorPoolConfig.setMinIdle(DEFAULT_MIN_IDLE_EXECUTORS);
         executorPoolConfig.setMinEvictableIdleTime(MIN_EVICTABLE_IDLE_TIME);
-        executorPool = new GenericObjectPool<>(new ExecutionThreadPoolFactory(throttleLimit), executorPoolConfig);
+        return executorPoolConfig;
     }
 
     @Override
@@ -79,10 +84,10 @@ public final class Conottle implements ConcurrentThrottle {
         return new MinimalFuture<>(activeExecutors.computeIfAbsent(clientId, getPooledExecutor()).submit(task));
     }
 
-    private Function<Object, ActiveExecutor> getPooledExecutor() {
-        return key -> {
+    private Function<Object, ThrottledExecutor> getPooledExecutor() {
+        return executorId -> {
             try {
-                return new ActiveExecutor(key, executorPool.borrowObject());
+                return new ThrottledExecutor(executorId, executorPool.borrowObject());
             } catch (Exception e) {
                 throw new IllegalStateException("unable to borrow executor from pool " + executorPool, e);
             }
@@ -152,11 +157,11 @@ public final class Conottle implements ConcurrentThrottle {
         }
     }
 
-    private static class ExecutionThreadPoolFactory extends BasePooledObjectFactory<ExecutorService> {
-        private final Logger trace = Logger.instance(ExecutionThreadPoolFactory.class).atTrace();
+    private static class ExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
+        private final Logger trace = Logger.instance(ExecutorServiceFactory.class).atTrace();
         private final int throttleLimit;
 
-        public ExecutionThreadPoolFactory(int throttleLimit) {
+        public ExecutorServiceFactory(int throttleLimit) {
             this.throttleLimit = throttleLimit;
         }
 
@@ -171,21 +176,22 @@ public final class Conottle implements ConcurrentThrottle {
         }
 
         @Override
-        public void destroyObject(PooledObject<ExecutorService> p, DestroyMode destroyMode) throws Exception {
-            trace.log("destroying pooled executor {} with mode {}...", p, destroyMode);
-            p.getObject().shutdown();
-            super.destroyObject(p, destroyMode);
+        public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode)
+                throws Exception {
+            trace.log("destroying pooled executor {} with mode {}...", pooledExecutorService, destroyMode);
+            pooledExecutorService.getObject().shutdown();
+            super.destroyObject(pooledExecutorService, destroyMode);
         }
     }
 
-    private class ActiveExecutor {
-        private final Logger trace = Logger.instance(ActiveExecutor.class).atTrace();
-        private final Object throttleId;
+    private class ThrottledExecutor {
+        private final Logger trace = Logger.instance(ThrottledExecutor.class).atTrace();
+        private final Object executorId;
         private final AtomicInteger pendingTasks;
         private final ExecutorService threadPool;
 
-        public ActiveExecutor(Object throttleId, ExecutorService threadPool) {
-            this.throttleId = throttleId;
+        public ThrottledExecutor(Object executorId, ExecutorService threadPool) {
+            this.executorId = executorId;
             this.threadPool = threadPool;
             this.pendingTasks = new AtomicInteger();
         }
@@ -213,8 +219,8 @@ public final class Conottle implements ConcurrentThrottle {
         private <V> BiConsumer<V, Throwable> decrementPendingTasksAndMayDeactivateExecutor() {
             return (r, e) -> {
                 if (pendingTasks.decrementAndGet() == 0) {
-                    trace.log("deactivating executor for throttle id {}...", this.throttleId);
-                    ExecutorService toReturn = activeExecutors.remove(this.throttleId).threadPool;
+                    trace.log("deactivating executor for throttle id {}...", this.executorId);
+                    ExecutorService toReturn = activeExecutors.remove(this.executorId).threadPool;
                     try {
                         executorPool.returnObject(toReturn);
                     } catch (Exception ex) {
