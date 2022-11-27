@@ -23,7 +23,7 @@ Java 8 or better
 ### API
 
 ```aidl
-public interface ConcurrentThrottle {
+public interface ConcurrentThrottler {
     /**
      * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
      *                 are run in parallel, albeit throttled at a maximum concurrency.
