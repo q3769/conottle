@@ -46,7 +46,7 @@ public interface ConcurrentThrottle {
 class submit {
     @Test
     void customized() throws ExecutionException, InterruptedException {
-        Conottle conottle = new Conottle.Builder().throttleLimit(3).maxActiveClients(4).build();
+        Conottle conottle = new Conottle.Builder().throttleLimit(3).activeClientLimit(4).build();
         String clientId1 = "clientId1";
         String clientId2 = "clientId2";
         int totalTasksPerClient = 10;
@@ -76,21 +76,21 @@ class submit {
 
 Both builder parameters are optional.
 
-- `throttleLimit` is the maximum concurrency with which a given client's tasks can execute. If omitted, the default is
-  the number of the available processors to the JVM runtime - `Runtime.getRuntime().availableProcessors()`.
+- `throttleLimit` is the throttle/maximum concurrency with which a given client's tasks can execute. If omitted, the
+  default is the number of the available processors to the JVM runtime - `Runtime.getRuntime().availableProcessors()`.
 
-- `maxActiveClients` is the maximum total number of clients that can be serviced in parallel. If omitted, the default
-  is unlimited - `Integer.MAX_VALUE`.
+- `activeClientLimit` is the throttle/maximum total number of clients that can be serviced in parallel. If omitted, the
+  default is unbounded - `Integer.MAX_VALUE`.
 
 Each throttled client has its own dedicated executor. The executor is backed by a thread pool of size `throttleLimit`.
 Therefore, the client/executor's task execution concurrency will never go beyond, and always be throttled at
 the `throttleLimit`.
 
 If both builder parameters are provided, the global maximum number of concurrently running threads is
-the `throttleLimit` of each client/executor, multiplied by the `maxActiveClients`.
+the `throttleLimit` of each client/executor, multiplied by the `activeClientLimit`.
 
-An all-default builder builds a conottle instance that has no limit on the `maxActiveClients`, while the `throttleLimit`
-of each client is set at `Runtime.getRuntime().availableProcessors()`:
+An all-default builder builds a conottle instance that has unbounded on the `activeClientLimit`, while
+the `throttleLimit` of each client is set at `Runtime.getRuntime().availableProcessors()`:
 
 ```aidl
 ConcurrentThrottle conottle = new Conottle.Builder().build();

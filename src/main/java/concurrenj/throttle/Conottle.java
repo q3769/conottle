@@ -60,7 +60,7 @@ public final class Conottle implements ConcurrentThrottle {
         if (throttleLimit == 0) {
             throttleLimit = DEFAULT_THROTTLE;
         }
-        int maxActiveExecutors = builder.maxActiveClients;
+        int maxActiveExecutors = builder.activeClientLimit;
         if (maxActiveExecutors < 1) {
             maxActiveExecutors = DEFAULT_MAX_ACTIVE_EXECUTORS;
         }
@@ -105,10 +105,10 @@ public final class Conottle implements ConcurrentThrottle {
 
     public static final class Builder {
         private int throttleLimit;
-        private int maxActiveClients;
+        private int activeClientLimit;
 
-        public Builder maxActiveClients(int val) {
-            this.maxActiveClients = val;
+        public Builder activeClientLimit(int val) {
+            this.activeClientLimit = val;
             return this;
         }
 
