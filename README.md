@@ -101,13 +101,13 @@ the `throttleLimit` of each client/executor, multiplied by the `activeClientLimi
 An all-default builder builds a conottle instance that has unbounded `activeClientLimit`, while the `throttleLimit` of
 each client is set at `Runtime.getRuntime().availableProcessors()`:
 
-```kotlin
+```groovy
 ConcurrentThrottler conottle = new Conottle.Builder().build();
 ```
 
 Builder parameters can also be individually provided. E.g. a conottle instance from the following builder throttles the
 max concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
 
-```kotlin
+```groovy
 ConcurrentThrottler conottle = new Conottle.Builder().throttleLimit(4).build();
 ```

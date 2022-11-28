@@ -102,7 +102,7 @@ public final class Conottle implements ConcurrentThrottler {
         };
     }
 
-    int sizeOfActiveExecutors() {
+    int totalActiveExecutors() {
         return activeExecutors.size();
     }
 

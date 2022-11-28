@@ -53,7 +53,7 @@ class ConottleTest {
         }
 
         int totalClients = 2;
-        assertEquals(totalClients, conottle.sizeOfActiveExecutors(), "should be 1:1 between a client and its executor");
+        assertEquals(totalClients, conottle.totalActiveExecutors(), "should be 1:1 between a client and its executor");
         info.log("none of {} will be done right away", futures);
         for (Future<Void> future : futures) {
             assertFalse(future.isDone());
@@ -63,7 +63,7 @@ class ConottleTest {
             await().until(future::isDone);
         }
         info.log("no active executor lingers when all tasks complete");
-        await().until(() -> conottle.sizeOfActiveExecutors() == 0);
+        await().until(() -> conottle.totalActiveExecutors() == 0);
     }
 
     @Nested
@@ -83,7 +83,7 @@ class ConottleTest {
 
             int totalClients = 2;
             assertEquals(totalClients,
-                    conottle.sizeOfActiveExecutors(),
+                    conottle.totalActiveExecutors(),
                     "should be 1:1 between a client and its executor");
             info.log("none of {} will be done right away", futures);
             for (Future<Task> future : futures) {
@@ -95,7 +95,7 @@ class ConottleTest {
                 assertTrue(future.get().isComplete());
             }
             info.log("no active executor lingers when all tasks complete");
-            await().until(() -> conottle.sizeOfActiveExecutors() == 0);
+            await().until(() -> conottle.totalActiveExecutors() == 0);
         }
     }
 
