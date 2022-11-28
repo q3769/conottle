@@ -233,7 +233,7 @@ public final class Conottle implements ConcurrentThrottler {
                     returnThrottlingExecutorServiceToPool();
                     return null;
                 } else {
-                    trace.log("{} remains active...", this);
+                    trace.log("retaining active: {}", this);
                     return self;
                 }
             });

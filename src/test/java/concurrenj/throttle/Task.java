@@ -55,11 +55,11 @@ public class Task implements Callable<Task>, Runnable {
     public Task call() {
         this.startTimeMillis = System.currentTimeMillis();
         this.executionThreadName = Thread.currentThread().getName();
-        trace.log("{} started to run by {}", this, this.executionThreadName);
+        trace.log("started {} with {}", this, this.executionThreadName);
         this.complete = true;
         await().pollInterval(pollInterval).atLeast(minDuration).until(this::isComplete);
         this.endTimeMillis = System.currentTimeMillis();
-        trace.log("{} completed in {}", this, this.getActualDuration());
+        trace.log("completed {} in {}", this, this.getActualDuration());
         return this;
     }
 
