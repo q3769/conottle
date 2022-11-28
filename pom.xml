@@ -34,7 +34,7 @@
     <packaging>jar</packaging>
     <name>conottle</name>
     <description>A Java concurrent API to throttle the maximum concurrency to process tasks of a given client while the
-        total number of clients being serviced in parallel can also be throttled.
+        total number of clients being serviced in parallel can also be throttled
     </description>
 
     <url>https://github.com/q3769/conottle</url>

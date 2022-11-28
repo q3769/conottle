@@ -1,7 +1,7 @@
 # conottle
 
 A Java concurrent API to throttle the maximum concurrency to process tasks of a given client while the total number of
-clients being serviced in parallel can also be throttled.
+clients being serviced in parallel can also be throttled
 
 - **conottle** is short for **con**current thr**ottle**.
 
