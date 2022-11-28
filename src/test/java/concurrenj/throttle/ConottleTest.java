@@ -53,17 +53,18 @@ class ConottleTest {
         }
 
         int totalClients = 2;
-        assertEquals(totalClients, conottle.totalActiveExecutors(), "should be 1:1 between a client and its executor");
-        info.log("none of {} will be done right away", futures);
+        assertEquals(totalClients, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
+        int totalTasks = futures.size();
+        info.log("none of {} tasks will be done right away", totalTasks);
         for (Future<Void> future : futures) {
             assertFalse(future.isDone());
         }
-        info.log("all of {} will be done eventually", futures);
+        info.log("all of {} tasks will be done eventually", totalTasks);
         for (Future<Void> future : futures) {
             await().until(future::isDone);
         }
         info.log("no active executor lingers when all tasks complete");
-        await().until(() -> conottle.totalActiveExecutors() == 0);
+        await().until(() -> conottle.countActiveExecutors() == 0);
     }
 
     @Nested
@@ -83,19 +84,20 @@ class ConottleTest {
 
             int totalClients = 2;
             assertEquals(totalClients,
-                    conottle.totalActiveExecutors(),
+                    conottle.countActiveExecutors(),
                     "should be 1:1 between a client and its executor");
-            info.log("none of {} will be done right away", futures);
+            int totalTasks = futures.size();
+            info.log("none of {} tasks will be done right away", totalTasks);
             for (Future<Task> future : futures) {
                 assertFalse(future.isDone());
             }
-            info.log("all of {} will be done eventually", futures);
+            info.log("all of {} tasks will be done eventually", totalTasks);
             for (Future<Task> future : futures) {
                 await().until(future::isDone);
                 assertTrue(future.get().isComplete());
             }
             info.log("no active executor lingers when all tasks complete");
-            await().until(() -> conottle.totalActiveExecutors() == 0);
+            await().until(() -> conottle.countActiveExecutors() == 0);
         }
     }
 
