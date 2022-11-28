@@ -87,7 +87,7 @@ Both builder parameters are optional:
   default is unbounded - `Integer.MAX_VALUE`.
 
 Note that, regardless of the parameter values, there is no limit on how many overall clients or tasks the API can
-support. E.g. the `activeClientLimit` parameter only limits on the concurrent number of clients whose tasks are actively
+support. The `activeClientLimit` parameter e.g. only limits on the concurrent number of clients whose tasks are actively
 executing in parallel at any given moment. Excessive clients/tasks will have to wait for active ones to complete before
 proceeding - a.k.a. the throttling effect.
 
