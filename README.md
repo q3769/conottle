@@ -44,7 +44,8 @@ public interface ConcurrentThrottler {
 
 ### Sample usage
 
-```groovy
+```java
+
 @Nested
 class submit {
     @Test
