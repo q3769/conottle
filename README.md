@@ -62,7 +62,7 @@ class submit {
         }
 
         int totalClients = 2;
-        assertEquals(totalClients, conottle.sizeOfActiveExecutors(), "should be 1:1 between a client and its executor");
+        assertEquals(totalClients, conottle.totalActiveExecutors(), "should be 1:1 between a client and its executor");
         info.log("none of {} will be done right away", futures);
         for (Future<Task> future : futures) {
             assertFalse(future.isDone());
@@ -73,7 +73,7 @@ class submit {
             assertTrue(future.get().isComplete());
         }
         info.log("no active executor lingers when all tasks complete");
-        await().until(() -> conottle.sizeOfActiveExecutors() == 0);
+        await().until(() -> conottle.totalActiveExecutors() == 0);
     }
 }
 ```
@@ -101,13 +101,13 @@ the `throttleLimit` of each client/executor, multiplied by the `activeClientLimi
 An all-default builder builds a conottle instance that has unbounded `activeClientLimit`, while the `throttleLimit` of
 each client is set at `Runtime.getRuntime().availableProcessors()`:
 
-```groovy
+```kotlin
 ConcurrentThrottler conottle = new Conottle.Builder().build();
 ```
 
 Builder parameters can also be individually provided. E.g. a conottle instance from the following builder throttles the
 max concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
 
-```groovy
+```kotlin
 ConcurrentThrottler conottle = new Conottle.Builder().throttleLimit(4).build();
 ```
