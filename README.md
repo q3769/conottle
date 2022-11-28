@@ -63,7 +63,7 @@ class submit {
 
         int totalClients = 2;
         assertEquals(totalClients, conottle.sizeOfActiveExecutors(), "should be 1:1 between a client and its executor");
-        info.log("none of {} will not get done right away", futures);
+        info.log("none of {} will get done right away", futures);
         for (Future<Task> future : futures) {
             assertFalse(future.isDone());
         }
