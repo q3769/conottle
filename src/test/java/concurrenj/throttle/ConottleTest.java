@@ -44,22 +44,22 @@ class ConottleTest {
     private static void testExecute(Conottle conottle) {
         String clientId1 = "clientId1";
         String clientId2 = "clientId2";
-        int totalTasksPerClient = 10;
+        int clientTaskTotal = 10;
 
         List<Future<Void>> futures = new ArrayList<>();
-        for (int i = 0; i < totalTasksPerClient; i++) {
+        for (int i = 0; i < clientTaskTotal; i++) {
             futures.add(conottle.execute(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
             futures.add(conottle.execute(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
         }
 
-        int totalClients = 2;
-        assertEquals(totalClients, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
-        int totalTasks = futures.size();
-        info.log("none of {} tasks will be done right away", totalTasks);
+        int clientTotal = 2;
+        assertEquals(clientTotal, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
+        int taskTotal = futures.size();
+        info.log("none of {} tasks will be done right away", taskTotal);
         for (Future<Void> future : futures) {
             assertFalse(future.isDone());
         }
-        info.log("all of {} tasks will be done eventually", totalTasks);
+        info.log("all of {} tasks will be done eventually", taskTotal);
         for (Future<Void> future : futures) {
             await().until(future::isDone);
         }
@@ -74,24 +74,24 @@ class ConottleTest {
             Conottle conottle = new Conottle.Builder().throttleLimit(4).activeClientLimit(50).build();
             String clientId1 = "clientId1";
             String clientId2 = "clientId2";
-            int totalTasksPerClient = 10;
+            int clientTaskTotal = 10;
 
             List<Future<Task>> futures = new ArrayList<>();
-            for (int i = 0; i < totalTasksPerClient; i++) {
+            for (int i = 0; i < clientTaskTotal; i++) {
                 futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
                 futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
             }
 
-            int totalClients = 2;
-            assertEquals(totalClients,
+            int clientTotal = 2;
+            assertEquals(clientTotal,
                     conottle.countActiveExecutors(),
                     "should be 1:1 between a client and its executor");
-            int totalTasks = futures.size();
-            info.log("none of {} tasks will be done right away", totalTasks);
+            int taskTotal = futures.size();
+            info.log("none of {} tasks will be done right away", taskTotal);
             for (Future<Task> future : futures) {
                 assertFalse(future.isDone());
             }
-            info.log("all of {} tasks will be done eventually", totalTasks);
+            info.log("all of {} tasks will be done eventually", taskTotal);
             for (Future<Task> future : futures) {
                 await().until(future::isDone);
                 assertTrue(future.get().isComplete());
