@@ -25,8 +25,8 @@
 package concurrenj.throttle;
 
 import elf4j.Logger;
-import lombok.NonNull;
 import lombok.ToString;
+import lombok.experimental.Delegate;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.DestroyMode;
 import org.apache.commons.pool2.ObjectPool;
@@ -132,36 +132,10 @@ public final class Conottle implements ConcurrentThrottler {
     }
 
     private static class MinimalFuture<V> implements Future<V> {
-        private final Future<V> delegate;
+        @Delegate private final Future<V> delegate;
 
         public MinimalFuture(Future<V> delegate) {
             this.delegate = delegate;
-        }
-
-        @Override
-        public boolean cancel(boolean mayInterruptIfRunning) {
-            return delegate.cancel(mayInterruptIfRunning);
-        }
-
-        @Override
-        public boolean isCancelled() {
-            return delegate.isCancelled();
-        }
-
-        @Override
-        public boolean isDone() {
-            return delegate.isDone();
-        }
-
-        @Override
-        public V get() throws InterruptedException, ExecutionException {
-            return delegate.get();
-        }
-
-        @Override
-        public V get(long timeout, @NonNull TimeUnit unit)
-                throws InterruptedException, ExecutionException, TimeoutException {
-            return delegate.get(timeout, unit);
         }
     }
 
