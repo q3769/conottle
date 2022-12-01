@@ -7,8 +7,8 @@ clients being serviced in parallel can also be throttled
 
 ## User story
 
-As an API user, I want to execute all tasks of a given client with a configurable maximum concurrency - the throttle
-limit - while the total number of clients being serviced in parallel can also be throttled.
+As an API user, I want to execute all tasks of a given client with a configurable maximum concurrency - i.e. the
+throttle limit - while the total number of clients being serviced in parallel can also be throttled.
 
 ## Prerequisite
 
