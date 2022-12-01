@@ -45,7 +45,7 @@ import java.util.function.Function;
 @ThreadSafe
 @ToString
 public final class Conottle implements ConcurrentThrottler {
-    private static final ForkJoinPool ADMIN_THREAD_POOL = ForkJoinPool.commonPool();
+    private static final ExecutorService ADMIN_EXECUTOR_SERVICE = ForkJoinPool.commonPool();
     private static final int DEFAULT_MAX_ACTIVE_EXECUTORS = Integer.MAX_VALUE;
     private static final int DEFAULT_MIN_IDLE_EXECUTORS = 2;
     private static final int DEFAULT_THROTTLE = Runtime.getRuntime().availableProcessors();
@@ -182,7 +182,7 @@ public final class Conottle implements ConcurrentThrottler {
         public Future<Void> execute(Runnable command) {
             pendingTasks.incrementAndGet();
             CompletableFuture<Void> resultFuture = CompletableFuture.runAsync(command, throttlingExecutorService);
-            resultFuture.whenCompleteAsync(decrementPendingTasksAndMayDeactivateExecutor(), ADMIN_THREAD_POOL);
+            resultFuture.whenCompleteAsync(decrementPendingTasksAndMayDeactivateExecutor(), ADMIN_EXECUTOR_SERVICE);
             return resultFuture;
         }
 
@@ -195,37 +195,41 @@ public final class Conottle implements ConcurrentThrottler {
                     throw new UncheckedTaskCallException(e);
                 }
             }, throttlingExecutorService);
-            resultFuture.whenCompleteAsync(decrementPendingTasksAndMayDeactivateExecutor(), ADMIN_THREAD_POOL);
+            resultFuture.whenCompleteAsync(decrementPendingTasksAndMayDeactivateExecutor(), ADMIN_EXECUTOR_SERVICE);
             return resultFuture;
         }
 
+        /**
+         * Task count decrement and potential executor deactivation should be atomic.
+         *
+         * @param <V> type of task result
+         * @return function to decrement task count and potentially deactivate executor
+         */
         private <V> BiConsumer<V, Throwable> decrementPendingTasksAndMayDeactivateExecutor() {
             return (r, e) -> activeExecutors.compute(executorId, (sameId, self) -> {
                 assert self == this;
                 if (pendingTasks.decrementAndGet() == 0) {
-                    trace.log("deactivating executor {}...", executorId);
+                    trace.log("deactivating executor of {}...", executorId);
                     returnThrottlingExecutorServiceToPool();
                     return null;
                 } else {
-                    trace.log("retaining active: {}", this);
+                    trace.log("retaining active executor of {}...", executorId);
                     return self;
                 }
             });
         }
 
         private void returnThrottlingExecutorServiceToPool() {
-            ADMIN_THREAD_POOL.execute(() -> {
-                try {
-                    trace.log("returning {} to {}", throttlingExecutorService, throttlingExecutorServicePool);
-                    throttlingExecutorServicePool.returnObject(throttlingExecutorService);
-                } catch (Exception ex) {
-                    trace.atWarn()
-                            .log(ex,
-                                    "ignoring failure of returning {} to {}",
-                                    throttlingExecutorService,
-                                    throttlingExecutorServicePool);
-                }
-            });
+            try {
+                trace.log("returning {} to {}", throttlingExecutorService, throttlingExecutorServicePool);
+                throttlingExecutorServicePool.returnObject(throttlingExecutorService);
+            } catch (Exception ex) {
+                trace.atWarn()
+                        .log(ex,
+                                "ignoring failure of returning {} to {}",
+                                throttlingExecutorService,
+                                throttlingExecutorServicePool);
+            }
         }
     }
 }
