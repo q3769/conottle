@@ -76,7 +76,7 @@ class ConottleTest {
             String clientId2 = "clientId2";
             int clientTaskTotal = 10;
 
-            List<Future<Task>> futures = new ArrayList<>();
+            List<Future<Task>> futures = new ArrayList<>(); // class Task implements Callable<Task>
             for (int i = 0; i < clientTaskTotal; i++) {
                 futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
                 futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
