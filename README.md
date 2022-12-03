@@ -24,22 +24,22 @@ Java 8 or better
 
 ```java
 public interface ConcurrentThrottler {
-  /**
-   * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
-   *                 are run in parallel, albeit throttled at a maximum concurrency.
-   * @param clientId A key representing a client whose tasks are throttled while running in parallel
-   * @return {@link Future} holding the run status of the {@code command}
-   */
-  Future<Void> execute(Runnable command, Object clientId);
+    /**
+     * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
+     *                 are run in parallel, albeit throttled at a maximum concurrency.
+     * @param clientId A key representing a client whose tasks are throttled while running in parallel
+     * @return {@link Future} holding the run status of the {@code command}
+     */
+    Future<Void> execute(Runnable command, Object clientId);
 
-  /**
-   * @param task     {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
-   *                 run in parallel, albeit throttled at a maximum concurrency.
-   * @param clientId A key representing a client whose tasks are throttled while running in parallel
-   * @param <V>      Type of the task result
-   * @return {@link Future} representing the result of the {@code task}
-   */
-  <V> Future<V> submit(Callable<V> task, Object clientId);
+    /**
+     * @param task     {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
+     *                 run in parallel, albeit throttled at a maximum concurrency.
+     * @param clientId A key representing a client whose tasks are throttled while running in parallel
+     * @param <V>      Type of the task result
+     * @return {@link Future} representing the result of the {@code task}
+     */
+    <V> Future<V> submit(Callable<V> task, Object clientId);
 }
 ```
 
@@ -85,23 +85,23 @@ Both builder parameters are optional:
 - `throttleLimit` is the throttle/maximum concurrency with which a given client's tasks can execute. If omitted, the
   default is the number of the available processors to the JVM runtime - `Runtime.getRuntime().availableProcessors()`.
 
-- `activeClientLimit` is the throttle/maximum number of clients that can be serviced in parallel. If omitted, the
+- `concurrentClientLimit` is the throttle/maximum number of clients that can be serviced in parallel. If omitted, the
   default is unbounded - `Integer.MAX_VALUE`.
 
 Note that, regardless of the parameter values, there is no limit on how many overall clients or tasks the API can
-support. The `activeClientLimit` parameter e.g. only limits on the concurrent number of clients whose tasks are actively
-executing in parallel at any given moment. Before proceeding, excessive clients/tasks will have to wait for active ones
-to run for completion - a.k.a. the throttling effect.
+support. The `concurrentClientLimit` parameter e.g. only limits on the concurrent number of clients whose tasks are
+actively executing in parallel at any given moment. Before proceeding, excessive clients/tasks will have to wait for
+active ones to run for completion - a.k.a. the throttling effect.
 
 Each throttled client has its own dedicated executor. The executor is backed by a thread pool of size `throttleLimit`.
 Therefore, a client/executor's task execution concurrency will never go beyond, and always be throttled at
 its `throttleLimit`.
 
 If both builder parameters are provided, the global maximum number of concurrent-execution threads is
-the `throttleLimit` of each client/executor, multiplied by the `activeClientLimit`.
+the `throttleLimit` of each client/executor, multiplied by the `concurrentClientLimit`.
 
-An all-default builder builds a conottle instance that has unbounded `activeClientLimit`, while the `throttleLimit` of
-each client is set at `Runtime.getRuntime().availableProcessors()`:
+An all-default builder builds a conottle instance that has unbounded `concurrentClientLimit`, while the `throttleLimit`
+of each client is set at `Runtime.getRuntime().availableProcessors()`:
 
 ```groovy
 ConcurrentThrottler conottle = new Conottle.Builder().build();
