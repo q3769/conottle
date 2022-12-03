@@ -227,7 +227,7 @@ public final class Conottle implements ConcurrentThrottler {
                 assert self == this;
                 if (pendingTasks.decrementAndGet() == 0) {
                     trace.log("deactivating executor of {}...", executorId);
-                    returnIgnoreError();
+                    returnExecutorServiceIgnoreError();
                     return null;
                 } else {
                     trace.log("retaining active executor of {}...", executorId);
@@ -236,7 +236,7 @@ public final class Conottle implements ConcurrentThrottler {
             });
         }
 
-        private void returnIgnoreError() {
+        private void returnExecutorServiceIgnoreError() {
             try {
                 trace.log("returning {} to {}", throttlingExecutorService, throttlingExecutorServicePool);
                 throttlingExecutorServicePool.returnObject(throttlingExecutorService);
