@@ -24,21 +24,22 @@ Java 8 or better
 
 ```java
 public interface ConcurrentThrottler {
-    /**
-     * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
-     *                 are run in parallel, albeit throttled at a maximum concurrency.
-     * @param clientId A key representing a client whose tasks are throttled while running in parallel
-     * @return {@link Future} holding the run status of the {@code command}
-     */
-    Future<Void> execute(Runnable command, Object clientId);
+  /**
+   * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
+   *                 are run in parallel, albeit throttled at a maximum concurrency.
+   * @param clientId A key representing a client whose tasks are throttled while running in parallel
+   * @return {@link Future} holding the run status of the {@code command}
+   */
+  Future<Void> execute(Runnable command, Object clientId);
 
-    /**
-     * @param task     {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
-     *                 run in parallel, albeit throttled at a maximum concurrency.
-     * @param clientId A key representing a client whose tasks are throttled while running in parallel
-     * @return {@link Future} representing the result of the {@code task}
-     */
-    <V> Future<V> submit(Callable<V> task, Object clientId);
+  /**
+   * @param task     {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
+   *                 run in parallel, albeit throttled at a maximum concurrency.
+   * @param clientId A key representing a client whose tasks are throttled while running in parallel
+   * @param <V>      Type of the task result
+   * @return {@link Future} representing the result of the {@code task}
+   */
+  <V> Future<V> submit(Callable<V> task, Object clientId);
 }
 ```
 
@@ -50,7 +51,7 @@ public interface ConcurrentThrottler {
 class submit {
     @Test
     void customized() throws ExecutionException, InterruptedException {
-        Conottle conottle = new Conottle.Builder().throttleLimit(4).activeClientLimit(50).build();
+        Conottle conottle = new Conottle.Builder().throttleLimit(4).concurrentClientLimit(50).build();
         String clientId1 = "clientId1";
         String clientId2 = "clientId2";
         int clientTaskTotal = 10;
@@ -77,7 +78,6 @@ class submit {
         await().until(() -> conottle.countActiveExecutors() == 0);
     }
 }
-
 ```
 
 Both builder parameters are optional:
