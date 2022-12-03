@@ -71,7 +71,7 @@ class ConottleTest {
     class submit {
         @Test
         void customized() throws ExecutionException, InterruptedException {
-            Conottle conottle = new Conottle.Builder().throttleLimit(4).activeClientLimit(50).build();
+            Conottle conottle = new Conottle.Builder().throttleLimit(4).concurrentClientLimit(50).build();
             String clientId1 = "clientId1";
             String clientId2 = "clientId2";
             int clientTaskTotal = 10;
@@ -115,7 +115,7 @@ class ConottleTest {
 
         @Test
         void customizedMaxActiveClients() {
-            testExecute(new Conottle.Builder().activeClientLimit(4).build());
+            testExecute(new Conottle.Builder().concurrentClientLimit(4).build());
         }
 
         @Test

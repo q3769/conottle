@@ -42,6 +42,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+/**
+ * Provides throttling on current tasks per client, and total number of clients serviced concurrently.
+ */
 @ThreadSafe
 @ToString
 public final class Conottle implements ConcurrentThrottler {
@@ -62,7 +65,7 @@ public final class Conottle implements ConcurrentThrottler {
         if (throttleLimit == 0) {
             throttleLimit = DEFAULT_THROTTLE;
         }
-        int maxActiveExecutors = builder.activeClientLimit;
+        int maxActiveExecutors = builder.concurrentClientLimit;
         if (maxActiveExecutors < 1) {
             maxActiveExecutors = DEFAULT_MAX_ACTIVE_EXECUTORS;
         }
@@ -106,20 +109,34 @@ public final class Conottle implements ConcurrentThrottler {
         return activeExecutors.size();
     }
 
+    /**
+     * Builder that can customize per client throttle limit and/or concurrently serviced client limit
+     */
     public static final class Builder {
         private int throttleLimit;
-        private int activeClientLimit;
+        private int concurrentClientLimit;
 
-        public Builder activeClientLimit(int val) {
-            this.activeClientLimit = val;
+        /**
+         * @param val max number of clients that can be concurrent serviced
+         * @return the same builder instance
+         */
+        public Builder concurrentClientLimit(int val) {
+            this.concurrentClientLimit = val;
             return this;
         }
 
+        /**
+         * @param val max number of tasks that can be concurrently executed per each client
+         * @return the name builder instance
+         */
         public Builder throttleLimit(int val) {
             throttleLimit = val;
             return this;
         }
 
+        /**
+         * @return the concurrent throttler instance
+         */
         public Conottle build() {
             return new Conottle(this);
         }
@@ -210,7 +227,7 @@ public final class Conottle implements ConcurrentThrottler {
                 assert self == this;
                 if (pendingTasks.decrementAndGet() == 0) {
                     trace.log("deactivating executor of {}...", executorId);
-                    returnThrottlingExecutorServiceToPool();
+                    returnIgnoreError();
                     return null;
                 } else {
                     trace.log("retaining active executor of {}...", executorId);
@@ -219,7 +236,7 @@ public final class Conottle implements ConcurrentThrottler {
             });
         }
 
-        private void returnThrottlingExecutorServiceToPool() {
+        private void returnIgnoreError() {
             try {
                 trace.log("returning {} to {}", throttlingExecutorService, throttlingExecutorServicePool);
                 throttlingExecutorServicePool.returnObject(throttlingExecutorService);

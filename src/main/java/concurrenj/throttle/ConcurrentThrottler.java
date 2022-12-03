@@ -27,6 +27,10 @@ package concurrenj.throttle;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
+/**
+ * Implementation should provide throttle capability on concurrent tasks of each client, and optionally on total number
+ * of clients serviced concurrently.
+ */
 public interface ConcurrentThrottler {
     /**
      * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
@@ -40,6 +44,7 @@ public interface ConcurrentThrottler {
      * @param task     {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
      *                 run in parallel, albeit throttled at a maximum concurrency.
      * @param clientId A key representing a client whose tasks are throttled while running in parallel
+     * @param <V>      Type of the task result
      * @return {@link Future} representing the result of the {@code task}
      */
     <V> Future<V> submit(Callable<V> task, Object clientId);
