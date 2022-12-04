@@ -25,6 +25,7 @@
 package concurrenj.throttle;
 
 import elf4j.Logger;
+import lombok.NonNull;
 import lombok.ToString;
 import lombok.experimental.Delegate;
 import org.apache.commons.pool2.BasePooledObjectFactory;
@@ -54,10 +55,10 @@ public final class Conottle implements ConcurrentThrottler {
     private static final int DEFAULT_THROTTLE = Runtime.getRuntime().availableProcessors();
     private static final Duration MIN_EVICTABLE_IDLE_TIME = Duration.ofMinutes(5);
     private static final Logger info = Logger.instance(Conottle.class).atInfo();
-    private final ConcurrentMap<Object, ThrottledExecutor> activeExecutors;
-    private final ObjectPool<ExecutorService> throttlingExecutorServicePool;
+    private final ConcurrentMap<Object, ClientTaskExecutor> activeExecutors;
+    private final ObjectPool<ExecutorService> throttlingClientTaskServicePool;
 
-    private Conottle(Builder builder) {
+    private Conottle(@NonNull Builder builder) {
         if (builder.throttleLimit < 0) {
             throw new IllegalArgumentException("throttle limit cannot be negative: " + builder.throttleLimit);
         }
@@ -70,12 +71,13 @@ public final class Conottle implements ConcurrentThrottler {
             maxActiveExecutors = DEFAULT_MAX_ACTIVE_EXECUTORS;
         }
         this.activeExecutors = new ConcurrentHashMap<>();
-        this.throttlingExecutorServicePool =
+        this.throttlingClientTaskServicePool =
                 new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(throttleLimit),
                         getThrottlingExecutorServicePoolConfig(maxActiveExecutors));
         info.log("constructed {}", this);
     }
 
+    @NonNull
     private static GenericObjectPoolConfig<ExecutorService> getThrottlingExecutorServicePoolConfig(int maxTotal) {
         GenericObjectPoolConfig<ExecutorService> throttlingExecutorServicePoolConfig = new GenericObjectPoolConfig<>();
         throttlingExecutorServicePoolConfig.setMaxTotal(maxTotal);
@@ -85,22 +87,25 @@ public final class Conottle implements ConcurrentThrottler {
     }
 
     @Override
-    public Future<Void> execute(Runnable command, Object clientId) {
-        return new MinimalFuture<>(activeExecutors.computeIfAbsent(clientId, getThrottledExecutor()).execute(command));
+    @NonNull
+    public Future<Void> execute(@NonNull Runnable command, @NonNull Object clientId) {
+        return new MinimalFuture<>(activeExecutors.computeIfAbsent(clientId, getClientTaskExecutor()).execute(command));
     }
 
     @Override
-    public <V> Future<V> submit(Callable<V> task, Object clientId) {
-        return new MinimalFuture<>(activeExecutors.computeIfAbsent(clientId, getThrottledExecutor()).submit(task));
+    @NonNull
+    public <V> Future<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
+        return new MinimalFuture<>(activeExecutors.computeIfAbsent(clientId, getClientTaskExecutor()).submit(task));
     }
 
-    private Function<Object, ThrottledExecutor> getThrottledExecutor() {
-        return executorId -> {
+    @NonNull
+    private Function<Object, ClientTaskExecutor> getClientTaskExecutor() {
+        return clientId -> {
             try {
-                return new ThrottledExecutor(executorId, throttlingExecutorServicePool.borrowObject());
+                return new ClientTaskExecutor(clientId, throttlingClientTaskServicePool.borrowObject());
             } catch (Exception e) {
-                throw new IllegalStateException("unable to borrow executor from pool " + throttlingExecutorServicePool,
-                        e);
+                throw new IllegalStateException(
+                        "unable to borrow executor from pool " + throttlingClientTaskServicePool, e);
             }
         };
     }
@@ -137,14 +142,9 @@ public final class Conottle implements ConcurrentThrottler {
         /**
          * @return the concurrent throttler instance
          */
+        @NonNull
         public Conottle build() {
             return new Conottle(this);
-        }
-    }
-
-    private static class UncheckedTaskCallException extends RuntimeException {
-        public UncheckedTaskCallException(Exception e) {
-            super(e);
         }
     }
 
@@ -165,11 +165,13 @@ public final class Conottle implements ConcurrentThrottler {
         }
 
         @Override
+        @NonNull
         public ExecutorService create() {
             return Executors.newFixedThreadPool(throttleLimit);
         }
 
         @Override
+        @NonNull
         public PooledObject<ExecutorService> wrap(ExecutorService executorService) {
             return new DefaultPooledObject<>(executorService);
         }
@@ -184,18 +186,19 @@ public final class Conottle implements ConcurrentThrottler {
     }
 
     @ToString
-    private class ThrottledExecutor {
-        private final Logger trace = Logger.instance(ThrottledExecutor.class).atTrace();
-        private final Object executorId;
+    private class ClientTaskExecutor {
+        private final Logger trace = Logger.instance(ClientTaskExecutor.class).atTrace();
+        private final Object clientId;
         private final AtomicInteger pendingTasks;
         private final ExecutorService throttlingExecutorService;
 
-        public ThrottledExecutor(Object executorId, ExecutorService throttlingExecutorService) {
-            this.executorId = executorId;
+        public ClientTaskExecutor(Object clientId, ExecutorService throttlingExecutorService) {
+            this.clientId = clientId;
             this.throttlingExecutorService = throttlingExecutorService;
             this.pendingTasks = new AtomicInteger();
         }
 
+        @NonNull
         public Future<Void> execute(Runnable command) {
             pendingTasks.incrementAndGet();
             CompletableFuture<Void> resultFuture = CompletableFuture.runAsync(command, throttlingExecutorService);
@@ -203,6 +206,7 @@ public final class Conottle implements ConcurrentThrottler {
             return resultFuture;
         }
 
+        @NonNull
         public <V> Future<V> submit(Callable<V> task) {
             pendingTasks.incrementAndGet();
             CompletableFuture<V> resultFuture = CompletableFuture.supplyAsync(() -> {
@@ -222,30 +226,36 @@ public final class Conottle implements ConcurrentThrottler {
          * @param <V> type of task result
          * @return function to decrement task count and potentially deactivate executor
          */
+        @NonNull
         private <V> BiConsumer<V, Throwable> decrementPendingTasksAndMayDeactivateExecutor() {
-            return (r, e) -> activeExecutors.compute(executorId, (sameId, self) -> {
+            return (r, e) -> activeExecutors.compute(clientId, (sameId, self) -> {
                 assert self == this;
                 if (pendingTasks.decrementAndGet() == 0) {
-                    trace.log("deactivating executor of {}...", executorId);
-                    returnExecutorServiceIgnoreError();
+                    trace.log("deactivating executor {}...", self);
+                    returnToPoolIgnoreError(self.throttlingExecutorService);
                     return null;
                 } else {
-                    trace.log("retaining active executor of {}...", executorId);
+                    trace.log("retaining active executor {}...", self);
                     return self;
                 }
             });
         }
 
-        private void returnExecutorServiceIgnoreError() {
+        private void returnToPoolIgnoreError(ExecutorService executorService) {
             try {
-                trace.log("returning {} to {}", throttlingExecutorService, throttlingExecutorServicePool);
-                throttlingExecutorServicePool.returnObject(throttlingExecutorService);
+                throttlingClientTaskServicePool.returnObject(executorService);
             } catch (Exception ex) {
                 trace.atWarn()
                         .log(ex,
                                 "ignoring failure of returning {} to {}",
-                                throttlingExecutorService,
-                                throttlingExecutorServicePool);
+                                executorService,
+                                throttlingClientTaskServicePool);
+            }
+        }
+
+        private class UncheckedTaskCallException extends RuntimeException {
+            public UncheckedTaskCallException(Exception e) {
+                super(e);
             }
         }
     }
