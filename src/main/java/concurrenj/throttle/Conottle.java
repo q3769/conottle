@@ -52,7 +52,7 @@ public final class Conottle implements ConcurrentThrottler {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = ForkJoinPool.commonPool();
     private static final int DEFAULT_MAX_ACTIVE_EXECUTORS = Integer.MAX_VALUE;
     private static final int DEFAULT_MIN_IDLE_EXECUTORS = 2;
-    private static final int DEFAULT_THROTTLE = Runtime.getRuntime().availableProcessors();
+    private static final int DEFAULT_THROTTLE_LIMIT = Runtime.getRuntime().availableProcessors();
     private static final Duration MIN_EVICTABLE_IDLE_TIME = Duration.ofMinutes(5);
     private static final Logger info = Logger.instance(Conottle.class).atInfo();
     private final ConcurrentMap<Object, ClientTaskExecutor> activeExecutors;
@@ -64,7 +64,7 @@ public final class Conottle implements ConcurrentThrottler {
         }
         int throttleLimit = builder.throttleLimit;
         if (throttleLimit == 0) {
-            throttleLimit = DEFAULT_THROTTLE;
+            throttleLimit = DEFAULT_THROTTLE_LIMIT;
         }
         int maxActiveExecutors = builder.concurrentClientLimit;
         if (maxActiveExecutors < 1) {
