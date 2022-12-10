@@ -50,7 +50,7 @@ public interface ConcurrentThrottler {
 @Nested
 class submit {
     @Test
-    void customized() throws ExecutionException, InterruptedException {
+    void customized() {
         Conottle conottle = new Conottle.Builder().throttleLimit(4).concurrentClientLimit(50).build();
         String clientId1 = "clientId1";
         String clientId2 = "clientId2";
@@ -103,13 +103,13 @@ the `throttleLimit` of each client/executor, multiplied by the `concurrentClient
 An all-default builder builds a conottle instance that has unbounded `concurrentClientLimit`, while the `throttleLimit`
 of each client is set at `Runtime.getRuntime().availableProcessors()`:
 
-```groovy
+```jshelllanguage
 ConcurrentThrottler conottle = new Conottle.Builder().build();
 ```
 
 Builder parameters can also be individually provided. E.g. a conottle instance from the following builder throttles the
 max concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
 
-```groovy
+```jshelllanguage
 ConcurrentThrottler conottle = new Conottle.Builder().throttleLimit(4).build();
 ```
