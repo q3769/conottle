@@ -54,7 +54,8 @@ import static java.lang.Math.max;
 public final class Conottle implements ConcurrentThrottler {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
     private static final int DEFAULT_MAX_ACTIVE_EXECUTORS = Integer.MAX_VALUE;
-    private static final int DEFAULT_MIN_IDLE_EXECUTORS = max(16, Runtime.getRuntime().availableProcessors());
+    private static final int DEFAULT_MAX_IDLE_EXECUTORS = max(16, Runtime.getRuntime().availableProcessors());
+    private static final int DEFAULT_MIN_IDLE_EXECUTORS = DEFAULT_MAX_IDLE_EXECUTORS / 2;
     private static final int DEFAULT_THROTTLE_LIMIT = Runtime.getRuntime().availableProcessors();
     private static final Duration MIN_EVICTABLE_IDLE_TIME = Duration.ofMinutes(5);
     private static final Logger info = Logger.instance(Conottle.class).atInfo();
@@ -80,6 +81,7 @@ public final class Conottle implements ConcurrentThrottler {
     private static GenericObjectPoolConfig<ExecutorService> getThrottlingExecutorServicePoolConfig(int maxTotal) {
         GenericObjectPoolConfig<ExecutorService> throttlingExecutorServicePoolConfig = new GenericObjectPoolConfig<>();
         throttlingExecutorServicePoolConfig.setMaxTotal(maxTotal);
+        throttlingExecutorServicePoolConfig.setMaxIdle(DEFAULT_MAX_IDLE_EXECUTORS);
         throttlingExecutorServicePoolConfig.setMinIdle(DEFAULT_MIN_IDLE_EXECUTORS);
         throttlingExecutorServicePoolConfig.setMinEvictableIdleTime(MIN_EVICTABLE_IDLE_TIME);
         return throttlingExecutorServicePoolConfig;
