@@ -7,8 +7,8 @@ of clients being serviced in parallel can also be throttled
 
 ## User story
 
-As an API user of conottle, I want to execute all tasks on behalf of a client with a configurable maximum concurrency -
-i.e. the throttle limit - while the total number of clients being serviced in parallel can also be configurably limited.
+As an API user, I want to execute tasks on behalf of each identifiable client with a configurable maximum concurrency -
+i.e. the client throttle limit - while the total number of clients being serviced in parallel can also be limited.
 
 ## Prerequisite
 
