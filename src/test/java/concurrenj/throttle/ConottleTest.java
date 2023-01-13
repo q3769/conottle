@@ -68,6 +68,36 @@ class ConottleTest {
     }
 
     @Nested
+    class execute {
+        @Test
+        void allDefault() {
+            testExecute(new Conottle.Builder().build());
+        }
+
+        @Test
+        void customizedMaxActiveClients() {
+            testExecute(new Conottle.Builder().concurrentClientLimit(4).build());
+        }
+
+        @Test
+        void customizedThrottleLimit() {
+            testExecute(new Conottle.Builder().throttleLimit(3).build());
+        }
+
+        @Test
+        void noNegativeThrottleLimit() {
+            Conottle.Builder builder = new Conottle.Builder().throttleLimit(-1);
+            assertThrows(IllegalArgumentException.class, builder::build);
+
+            builder = new Conottle.Builder().concurrentClientLimit(-1);
+            assertThrows(IllegalArgumentException.class, builder::build);
+
+            builder = new Conottle.Builder().throttleLimit(-1).concurrentClientLimit(-1);
+            assertThrows(IllegalArgumentException.class, builder::build);
+        }
+    }
+
+    @Nested
     class submit {
         @Test
         void customized() throws ExecutionException, InterruptedException {
@@ -98,31 +128,6 @@ class ConottleTest {
             }
             info.log("no active executor lingers when all tasks complete");
             await().until(() -> conottle.countActiveExecutors() == 0);
-        }
-    }
-
-    @Nested
-    class execute {
-        @Test
-        void allDefault() {
-            testExecute(new Conottle.Builder().build());
-        }
-
-        @Test
-        void customizedThrottleLimit() {
-            testExecute(new Conottle.Builder().throttleLimit(3).build());
-        }
-
-        @Test
-        void customizedMaxActiveClients() {
-            testExecute(new Conottle.Builder().concurrentClientLimit(4).build());
-        }
-
-        @Test
-        void noNegativeThrottleLimit() {
-            Conottle.Builder builder = new Conottle.Builder().throttleLimit(-1);
-
-            assertThrows(IllegalArgumentException.class, builder::build);
         }
     }
 }

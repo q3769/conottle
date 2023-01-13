@@ -37,13 +37,13 @@ import static org.awaitility.Awaitility.await;
 @Getter
 public class Task implements Callable<Task>, Runnable {
     private static final Logger trace = Logger.instance(Task.class).atTrace();
-    private final Object taskId;
     private final Duration minDuration;
     private final Duration pollInterval;
-    private long startTimeMillis;
+    private final Object taskId;
+    private boolean complete;
     private long endTimeMillis;
     private String executionThreadName;
-    private boolean complete;
+    private long startTimeMillis;
 
     public Task(Object taskId, Duration minDuration) {
         this.taskId = taskId;
@@ -63,15 +63,15 @@ public class Task implements Callable<Task>, Runnable {
         return this;
     }
 
-    @Override
-    public void run() {
-        this.call();
-    }
-
     public Duration getActualDuration() {
         if (!isComplete()) {
             throw new IllegalStateException(this + " is not complete");
         }
         return Duration.ofMillis(this.endTimeMillis - this.startTimeMillis);
+    }
+
+    @Override
+    public void run() {
+        this.call();
     }
 }

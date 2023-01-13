@@ -62,25 +62,17 @@ public final class Conottle implements ConcurrentThrottler {
     private final ObjectPool<ExecutorService> throttlingClientTaskServicePool;
 
     private Conottle(@NonNull Builder builder) {
-        if (builder.throttleLimit < 0) {
-            throw new IllegalArgumentException("throttle limit cannot be negative: " + builder.throttleLimit);
-        }
-        if (builder.concurrentClientLimit < 0) {
+        if (builder.throttleLimit < 0 || builder.concurrentClientLimit < 0) {
             throw new IllegalArgumentException(
-                    "concurrent client limit cannot be negative: " + builder.concurrentClientLimit);
-        }
-        int throttleLimit = builder.throttleLimit;
-        if (throttleLimit == 0) {
-            throttleLimit = DEFAULT_THROTTLE_LIMIT;
-        }
-        int maxActiveExecutors = builder.concurrentClientLimit;
-        if (maxActiveExecutors == 0) {
-            maxActiveExecutors = DEFAULT_MAX_ACTIVE_EXECUTORS;
+                    "neither per client throttle limit nor max concurrent client limit can be negative but was given: "
+                            + builder);
         }
         this.activeExecutors = new ConcurrentHashMap<>();
-        this.throttlingClientTaskServicePool =
-                new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(throttleLimit),
-                        getThrottlingExecutorServicePoolConfig(maxActiveExecutors));
+        this.throttlingClientTaskServicePool = new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(
+                builder.throttleLimit == 0 ? DEFAULT_THROTTLE_LIMIT : builder.throttleLimit),
+                getThrottlingExecutorServicePoolConfig(
+                        builder.concurrentClientLimit == 0 ? DEFAULT_MAX_ACTIVE_EXECUTORS :
+                                builder.concurrentClientLimit));
         info.log("constructed {}", this);
     }
 
@@ -124,6 +116,7 @@ public final class Conottle implements ConcurrentThrottler {
     /**
      * Builder that can customize per client throttle limit and/or concurrently serviced client limit
      */
+    @ToString
     public static final class Builder {
         private int concurrentClientLimit;
         private int throttleLimit;
