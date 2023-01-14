@@ -105,7 +105,7 @@ public final class Conottle implements ConcurrentThrottler {
         CompletableFuture<V> taskStage = taskStageHolder.getStage();
         taskStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
                 (sameClientId, checkedExecutor) -> {
-                    if (checkedExecutor.decrementAndGetPendingTasks() == 0) {
+                    if (checkedExecutor.decrementAndGetPendingTaskCount() == 0) {
                         returnToPoolIgnoreError(checkedExecutor.throttlingExecutorService);
                         return null;
                     }
@@ -179,22 +179,23 @@ public final class Conottle implements ConcurrentThrottler {
     @ToString
     private static class ClientTaskExecutor {
         private final ExecutorService throttlingExecutorService;
-        private int pendingTasks;
+        private int pendingTaskCount;
 
         public ClientTaskExecutor(ExecutorService throttlingExecutorService) {
             this.throttlingExecutorService = throttlingExecutorService;
         }
 
-        public int decrementAndGetPendingTasks() {
-            if (pendingTasks <= 0) {
-                throw new IllegalStateException("cannot further decrement from pending task count: " + pendingTasks);
+        public int decrementAndGetPendingTaskCount() {
+            if (pendingTaskCount <= 0) {
+                throw new IllegalStateException(
+                        "cannot further decrement from pending task count: " + pendingTaskCount);
             }
-            return --pendingTasks;
+            return --pendingTaskCount;
         }
 
         @NonNull
         public <V> CompletableFuture<V> submit(Callable<V> task) {
-            pendingTasks++;
+            pendingTaskCount++;
             return CompletableFuture.supplyAsync(() -> {
                 try {
                     return task.call();
