@@ -86,10 +86,6 @@ public final class Conottle implements ConcurrentThrottler {
         return throttlingExecutorServicePoolConfig;
     }
 
-    int countActiveExecutors() {
-        return activeExecutors.size();
-    }
-
     @Override
     @NonNull
     public Future<Void> execute(@NonNull Runnable command, @NonNull Object clientId) {
@@ -101,7 +97,8 @@ public final class Conottle implements ConcurrentThrottler {
     public <V> Future<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         TaskStageHolder<V> taskStageHolder = new TaskStageHolder<>();
         activeExecutors.compute(clientId, (sameClientId, presentExecutor) -> {
-            ClientTaskExecutor executor = presentExecutor == null ? newClientTaskExecutor() : presentExecutor;
+            ClientTaskExecutor executor =
+                    presentExecutor == null ? new ClientTaskExecutor(borrowPooledExecutorService()) : presentExecutor;
             taskStageHolder.setStage(executor.submit(task));
             return executor;
         });
@@ -117,11 +114,11 @@ public final class Conottle implements ConcurrentThrottler {
         return new MinimalFuture<>(taskStage);
     }
 
-    private ClientTaskExecutor newClientTaskExecutor() {
+    private ExecutorService borrowPooledExecutorService() {
         try {
-            return new ClientTaskExecutor(throttlingClientTaskServicePool.borrowObject());
+            return throttlingClientTaskServicePool.borrowObject();
         } catch (Exception e) {
-            throw new IllegalStateException("unable to borrow executor from pool " + throttlingClientTaskServicePool,
+            throw new IllegalStateException("failed to borrow executor from pool " + throttlingClientTaskServicePool,
                     e);
         }
     }
@@ -129,13 +126,14 @@ public final class Conottle implements ConcurrentThrottler {
     private void returnToPoolIgnoreError(ExecutorService executorService) {
         try {
             throttlingClientTaskServicePool.returnObject(executorService);
-        } catch (Exception ex) {
+        } catch (Exception e) {
             logger.atWarn()
-                    .log(ex,
-                            "ignoring failure of returning {} to {}",
-                            executorService,
-                            throttlingClientTaskServicePool);
+                    .log(e, "ignoring failure of returning {} to {}", executorService, throttlingClientTaskServicePool);
         }
+    }
+
+    int countActiveExecutors() {
+        return activeExecutors.size();
     }
 
     /**
