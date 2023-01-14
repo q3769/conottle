@@ -235,10 +235,17 @@ public final class Conottle implements ConcurrentThrottler {
         }
 
         @Override
-        public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode)
-                throws Exception {
+        public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode) {
+            try {
+                super.destroyObject(pooledExecutorService, destroyMode);
+            } catch (Exception e) {
+                logger.atError()
+                        .log(e,
+                                "ignoring super-call error while destroying {} with {} mode",
+                                pooledExecutorService,
+                                destroyMode);
+            }
             pooledExecutorService.getObject().shutdown();
-            super.destroyObject(pooledExecutorService, destroyMode);
         }
     }
 }
