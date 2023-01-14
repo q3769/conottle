@@ -98,7 +98,7 @@ public final class Conottle implements ConcurrentThrottler {
         TaskStageHolder<V> taskStageHolder = new TaskStageHolder<>();
         activeExecutors.compute(clientId, (sameClientId, presentExecutor) -> {
             ClientTaskExecutor executor =
-                    presentExecutor == null ? new ClientTaskExecutor(borrowPooledExecutorService()) : presentExecutor;
+                    presentExecutor == null ? new ClientTaskExecutor(borrowFromPoolFailFast()) : presentExecutor;
             taskStageHolder.setStage(executor.submit(task));
             return executor;
         });
@@ -114,7 +114,11 @@ public final class Conottle implements ConcurrentThrottler {
         return new MinimalFuture<>(taskStage);
     }
 
-    private ExecutorService borrowPooledExecutorService() {
+    int countActiveExecutors() {
+        return activeExecutors.size();
+    }
+
+    private ExecutorService borrowFromPoolFailFast() {
         try {
             return throttlingClientTaskServicePool.borrowObject();
         } catch (Exception e) {
@@ -130,10 +134,6 @@ public final class Conottle implements ConcurrentThrottler {
             logger.atWarn()
                     .log(e, "ignoring failure of returning {} to {}", executorService, throttlingClientTaskServicePool);
         }
-    }
-
-    int countActiveExecutors() {
-        return activeExecutors.size();
     }
 
     /**
@@ -241,7 +241,7 @@ public final class Conottle implements ConcurrentThrottler {
             } catch (Exception e) {
                 logger.atWarn()
                         .log(e,
-                                "ignoring super-call error while destroying {} with {} mode",
+                                "ignoring call-super error while destroying {} with {} mode",
                                 pooledExecutorService,
                                 destroyMode);
             }
