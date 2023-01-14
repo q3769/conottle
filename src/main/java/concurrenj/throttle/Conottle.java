@@ -239,7 +239,7 @@ public final class Conottle implements ConcurrentThrottler {
             try {
                 super.destroyObject(pooledExecutorService, destroyMode);
             } catch (Exception e) {
-                logger.atError()
+                logger.atWarn()
                         .log(e,
                                 "ignoring super-call error while destroying {} with {} mode",
                                 pooledExecutorService,
