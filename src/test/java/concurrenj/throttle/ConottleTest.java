@@ -68,6 +68,21 @@ class ConottleTest {
     }
 
     @Nested
+    class build {
+        @Test
+        void noNegativeThrottleLimit() {
+            Conottle.Builder builder = new Conottle.Builder().throttleLimit(-1);
+            assertThrows(IllegalArgumentException.class, builder::build);
+
+            builder = new Conottle.Builder().concurrentClientLimit(-1);
+            assertThrows(IllegalArgumentException.class, builder::build);
+
+            builder = new Conottle.Builder().throttleLimit(-1).concurrentClientLimit(-1);
+            assertThrows(IllegalArgumentException.class, builder::build);
+        }
+    }
+
+    @Nested
     class execute {
         @Test
         void allDefault() {
@@ -82,18 +97,6 @@ class ConottleTest {
         @Test
         void customizedThrottleLimit() {
             testExecute(new Conottle.Builder().throttleLimit(3).build());
-        }
-
-        @Test
-        void noNegativeThrottleLimit() {
-            Conottle.Builder builder = new Conottle.Builder().throttleLimit(-1);
-            assertThrows(IllegalArgumentException.class, builder::build);
-
-            builder = new Conottle.Builder().concurrentClientLimit(-1);
-            assertThrows(IllegalArgumentException.class, builder::build);
-
-            builder = new Conottle.Builder().throttleLimit(-1).concurrentClientLimit(-1);
-            assertThrows(IllegalArgumentException.class, builder::build);
         }
     }
 
