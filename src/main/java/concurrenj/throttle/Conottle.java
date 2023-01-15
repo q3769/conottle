@@ -143,7 +143,7 @@ public final class Conottle implements ConcurrentThrottler {
         public Builder concurrentClientLimit(int val) {
             if (val < 0) {
                 throw new IllegalArgumentException(
-                        "Currently serviced client count cannot be negative but was given: " + val);
+                        "Max currently serviced client count cannot be negative but was given: " + val);
             }
             this.concurrentClientLimit = val;
             return this;
@@ -156,7 +156,8 @@ public final class Conottle implements ConcurrentThrottler {
         public Builder throttleLimit(int val) {
             if (val < 0) {
                 throw new IllegalArgumentException(
-                        "Throttle of concurrent thread count per client cannot be negative but was given: " + val);
+                        "Throttle of concurrent execution thread count per client cannot be negative but was given: "
+                                + val);
             }
             throttleLimit = val;
             return this;
