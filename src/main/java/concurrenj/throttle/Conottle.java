@@ -25,10 +25,7 @@
 package concurrenj.throttle;
 
 import elf4j.Logger;
-import lombok.Data;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Delegate;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.DestroyMode;
@@ -56,11 +53,6 @@ public final class Conottle implements ConcurrentThrottler {
     private final ObjectPool<ExecutorService> throttlingClientTaskServicePool;
 
     private Conottle(@NonNull Builder builder) {
-        if (builder.throttleLimit < 0 || builder.concurrentClientLimit < 0) {
-            throw new IllegalArgumentException(
-                    "neither per client throttle limit nor max concurrent client limit can be negative but was given: "
-                            + builder);
-        }
         this.activeExecutors = new ConcurrentHashMap<>();
         this.throttlingClientTaskServicePool = new GenericObjectPool<>(new ClientExecutorServiceFactory(
                 builder.throttleLimit == 0 ? DEFAULT_THROTTLE_LIMIT : builder.throttleLimit),
@@ -131,7 +123,7 @@ public final class Conottle implements ConcurrentThrottler {
      * Builder that can customize throttle limit on per-client concurrent tasks, and/or limit on total number of clients
      * concurrently serviced
      */
-    @ToString
+    @NoArgsConstructor
     public static final class Builder {
         private int concurrentClientLimit;
         private int throttleLimit;
@@ -149,6 +141,10 @@ public final class Conottle implements ConcurrentThrottler {
          * @return the same builder instance
          */
         public Builder concurrentClientLimit(int val) {
+            if (val < 0) {
+                throw new IllegalArgumentException(
+                        "Currently serviced client count cannot be negative but was given: " + val);
+            }
             this.concurrentClientLimit = val;
             return this;
         }
@@ -158,6 +154,10 @@ public final class Conottle implements ConcurrentThrottler {
          * @return the name builder instance
          */
         public Builder throttleLimit(int val) {
+            if (val < 0) {
+                throw new IllegalArgumentException(
+                        "Throttle of concurrent thread count per client cannot be negative but was given: " + val);
+            }
             throttleLimit = val;
             return this;
         }
