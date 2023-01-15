@@ -40,10 +40,7 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
-import java.time.Duration;
 import java.util.concurrent.*;
-
-import static java.lang.Math.max;
 
 /**
  * Provides throttling on current tasks per client, and total number of clients serviced concurrently.
@@ -53,10 +50,7 @@ import static java.lang.Math.max;
 public final class Conottle implements ConcurrentThrottler {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
     private static final int DEFAULT_MAX_ACTIVE_EXECUTORS = Integer.MAX_VALUE;
-    private static final int DEFAULT_MAX_IDLE_EXECUTORS = max(16, Runtime.getRuntime().availableProcessors());
-    private static final int DEFAULT_MIN_IDLE_EXECUTORS = DEFAULT_MAX_IDLE_EXECUTORS / 2;
     private static final int DEFAULT_THROTTLE_LIMIT = Runtime.getRuntime().availableProcessors();
-    private static final Duration MIN_EVICTABLE_IDLE_TIME = Duration.ofMinutes(5);
     private static final Logger logger = Logger.instance();
     private final ConcurrentMap<Object, ClientTaskExecutor> activeExecutors;
     private final ObjectPool<ExecutorService> throttlingClientTaskServicePool;
@@ -68,21 +62,17 @@ public final class Conottle implements ConcurrentThrottler {
                             + builder);
         }
         this.activeExecutors = new ConcurrentHashMap<>();
-        this.throttlingClientTaskServicePool = new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(
+        this.throttlingClientTaskServicePool = new GenericObjectPool<>(new ClientExecutorServiceFactory(
                 builder.throttleLimit == 0 ? DEFAULT_THROTTLE_LIMIT : builder.throttleLimit),
-                getThrottlingExecutorServicePoolConfig(
-                        builder.concurrentClientLimit == 0 ? DEFAULT_MAX_ACTIVE_EXECUTORS :
-                                builder.concurrentClientLimit));
+                getClientExecutorServicePoolConfig(builder.concurrentClientLimit == 0 ? DEFAULT_MAX_ACTIVE_EXECUTORS :
+                        builder.concurrentClientLimit));
         logger.atInfo().log("constructed {}", this);
     }
 
     @NonNull
-    private static GenericObjectPoolConfig<ExecutorService> getThrottlingExecutorServicePoolConfig(int maxTotal) {
+    private static GenericObjectPoolConfig<ExecutorService> getClientExecutorServicePoolConfig(int maxConcurrentlyServicedClients) {
         GenericObjectPoolConfig<ExecutorService> throttlingExecutorServicePoolConfig = new GenericObjectPoolConfig<>();
-        throttlingExecutorServicePoolConfig.setMaxTotal(maxTotal);
-        throttlingExecutorServicePoolConfig.setMaxIdle(DEFAULT_MAX_IDLE_EXECUTORS);
-        throttlingExecutorServicePoolConfig.setMinIdle(DEFAULT_MIN_IDLE_EXECUTORS);
-        throttlingExecutorServicePoolConfig.setMinEvictableIdleTime(MIN_EVICTABLE_IDLE_TIME);
+        throttlingExecutorServicePoolConfig.setMaxTotal(maxConcurrentlyServicedClients);
         return throttlingExecutorServicePoolConfig;
     }
 
@@ -96,20 +86,21 @@ public final class Conottle implements ConcurrentThrottler {
     @NonNull
     public <V> Future<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         TaskStageHolder<V> taskStageHolder = new TaskStageHolder<>();
-        activeExecutors.compute(clientId, (sameClientId, presentExecutor) -> {
+        activeExecutors.compute(clientId, (sameClientId, presentClientTaskExecutor) -> {
             ClientTaskExecutor executor =
-                    presentExecutor == null ? new ClientTaskExecutor(borrowFromPoolFailFast()) : presentExecutor;
+                    presentClientTaskExecutor == null ? new ClientTaskExecutor(borrowFromPoolFailFast()) :
+                            presentClientTaskExecutor;
             taskStageHolder.setStage(executor.submit(task));
             return executor;
         });
         CompletableFuture<V> taskStage = taskStageHolder.getStage();
         taskStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
-                (sameClientId, checkedExecutor) -> {
-                    if (checkedExecutor.decrementAndGetPendingTaskCount() == 0) {
-                        returnToPoolIgnoreError(checkedExecutor.throttlingExecutorService);
+                (sameClientId, checkedClientTaskExecutor) -> {
+                    if (checkedClientTaskExecutor.decrementAndGetPendingTaskCount() == 0) {
+                        returnToPoolIgnoreError(checkedClientTaskExecutor.getExecutorService());
                         return null;
                     }
-                    return checkedExecutor;
+                    return checkedClientTaskExecutor;
                 }), ADMIN_EXECUTOR_SERVICE);
         return new MinimalFuture<>(taskStage);
     }
@@ -173,53 +164,18 @@ public final class Conottle implements ConcurrentThrottler {
     }
 
     /**
-     * Not thread safe; needs to be synchronized.
+     * Creates pooled {@link ExecutorService} instances to facilitate async client task executions. The max concurrent
+     * threads of each `ExecutorService` instance will be the throttle limit of the client that the instance is
+     * supporting.
      */
-    @NotThreadSafe
-    @ToString
-    private static class ClientTaskExecutor {
-        private final ExecutorService throttlingExecutorService;
-        private int pendingTaskCount;
-
-        public ClientTaskExecutor(ExecutorService throttlingExecutorService) {
-            this.throttlingExecutorService = throttlingExecutorService;
-        }
-
-        public int decrementAndGetPendingTaskCount() {
-            if (pendingTaskCount <= 0) {
-                throw new IllegalStateException(
-                        "cannot further decrement from pending task count: " + pendingTaskCount);
-            }
-            return --pendingTaskCount;
-        }
-
-        @NonNull
-        public <V> CompletableFuture<V> submit(Callable<V> task) {
-            pendingTaskCount++;
-            return CompletableFuture.supplyAsync(() -> {
-                try {
-                    return task.call();
-                } catch (Exception e) {
-                    throw new CompletionException(e);
-                }
-            }, throttlingExecutorService);
-        }
-    }
-
-    @RequiredArgsConstructor
-    private static class MinimalFuture<V> implements Future<V> {
-        @Delegate private final Future<V> delegate;
-    }
-
-    @Data
-    private static class TaskStageHolder<V> {
-        private CompletableFuture<V> stage;
-    }
-
-    private static class ThrottlingExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
+    private static final class ClientExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
+        private static final Logger logger = Logger.instance();
         private final int throttleLimit;
 
-        public ThrottlingExecutorServiceFactory(int throttleLimit) {
+        /**
+         * @param throttleLimit max concurrent threads of the {@link ExecutorService} instance produced by this factory
+         */
+        public ClientExecutorServiceFactory(int throttleLimit) {
             this.throttleLimit = throttleLimit;
         }
 
@@ -248,5 +204,53 @@ public final class Conottle implements ConcurrentThrottler {
             }
             pooledExecutorService.getObject().shutdown();
         }
+    }
+
+    /**
+     * Not thread safe; needs to be synchronized.
+     */
+    @NotThreadSafe
+    @ToString
+    private static final class ClientTaskExecutor {
+        private final ExecutorService executorService;
+        private int pendingTaskCount;
+
+        public ClientTaskExecutor(ExecutorService executorService) {
+            this.executorService = executorService;
+        }
+
+        public int decrementAndGetPendingTaskCount() {
+            if (pendingTaskCount <= 0) {
+                throw new IllegalStateException(
+                        "cannot further decrement from pending task count: " + pendingTaskCount);
+            }
+            return --pendingTaskCount;
+        }
+
+        public ExecutorService getExecutorService() {
+            return executorService;
+        }
+
+        @NonNull
+        public <V> CompletableFuture<V> submit(Callable<V> task) {
+            pendingTaskCount++;
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    return task.call();
+                } catch (Exception e) {
+                    throw new CompletionException(e);
+                }
+            }, executorService);
+        }
+    }
+
+    @RequiredArgsConstructor
+    private static final class MinimalFuture<V> implements Future<V> {
+        @Delegate private final Future<V> delegate;
+    }
+
+    @Data
+    private static final class TaskStageHolder<V> {
+        private CompletableFuture<V> stage;
     }
 }
