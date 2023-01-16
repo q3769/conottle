@@ -42,19 +42,20 @@ class ConottleTest {
     private static final Logger info = Logger.instance(ConottleTest.class).atInfo();
 
     private static void testExecute(Conottle conottle) {
-        String clientId1 = "clientId1";
-        String clientId2 = "clientId2";
-        int clientTaskTotal = 10;
+        int clientCount = 2;
+        int clientTaskCount = 10;
 
         List<Future<Void>> futures = new ArrayList<>();
-        for (int i = 0; i < clientTaskTotal; i++) {
-            futures.add(conottle.execute(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
-            futures.add(conottle.execute(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
+        for (int c = 0; c < clientCount; c++) {
+            String clientId = "clientId-" + (c + 1);
+            for (int i = 0; i < clientTaskCount; i++) {
+                futures.add(conottle.execute(new Task(clientId + "-task-" + i, MIN_TASK_DURATION), clientId));
+            }
         }
 
-        int clientTotal = 2;
-        assertEquals(clientTotal, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
+        assertEquals(clientCount, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
         int taskTotal = futures.size();
+        assertEquals(clientTaskCount * clientCount, taskTotal);
         info.log("none of {} tasks will be done immediately", taskTotal);
         for (Future<Void> future : futures) {
             assertFalse(future.isDone());
@@ -101,21 +102,22 @@ class ConottleTest {
         @Test
         void customized() throws ExecutionException, InterruptedException {
             Conottle conottle = new Conottle.Builder().throttleLimit(4).concurrentClientLimit(50).build();
-            String clientId1 = "clientId1";
-            String clientId2 = "clientId2";
-            int clientTaskTotal = 10;
+            int clientCount = 2;
+            int clientTaskCount = 10;
 
             List<Future<Task>> futures = new ArrayList<>(); // class Task implements Callable<Task>
-            for (int i = 0; i < clientTaskTotal; i++) {
-                futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
-                futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
+            for (int c = 0; c < clientCount; c++) {
+                String clientId = "clientId-" + (c + 1);
+                for (int t = 0; t < clientTaskCount; t++) {
+                    futures.add(conottle.submit(new Task(clientId + "-task-" + t, MIN_TASK_DURATION), clientId));
+                }
             }
 
-            int clientTotal = 2;
-            assertEquals(clientTotal,
+            assertEquals(clientCount,
                     conottle.countActiveExecutors(),
                     "should be 1:1 between a client and its executor");
             int taskTotal = futures.size();
+            assertEquals(clientTaskCount * clientCount, taskTotal);
             info.log("none of {} tasks will be done immediately", taskTotal);
             for (Future<Task> future : futures) {
                 assertFalse(future.isDone());
