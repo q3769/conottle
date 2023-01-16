@@ -1,7 +1,7 @@
 # conottle
 
-A Java concurrent API to throttle the maximum concurrency to process tasks on behalf of a client while the total number
-of clients being serviced in parallel can also be throttled
+A Java concurrent API to throttle the maximum concurrency to process tasks of any given client while the total number of
+clients being serviced in parallel can also be throttled
 
 - **conottle** is short for **con**currency thr**ottle**.
 
@@ -24,22 +24,22 @@ Java 8 or better
 
 ```java
 public interface ConcurrentThrottler {
-    /**
-     * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
-     *                 are run in parallel, albeit throttled at a maximum concurrency.
-     * @param clientId A key representing a client whose tasks are throttled while running in parallel
-     * @return {@link Future} holding the run status of the {@code command}
-     */
-    Future<Void> execute(Runnable command, Object clientId);
+  /**
+   * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
+   *                 are run in parallel, albeit throttled at a maximum concurrency.
+   * @param clientId A key representing a client whose tasks are throttled while running in parallel
+   * @return {@link java.util.concurrent.Future} holding the run status of the {@code command}
+   */
+  Future<Void> execute(Runnable command, Object clientId);
 
-    /**
-     * @param task     {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
-     *                 run in parallel, albeit throttled at a maximum concurrency.
-     * @param clientId A key representing a client whose tasks are throttled while running in parallel
-     * @param <V>      Type of the task result
-     * @return {@link Future} representing the result of the {@code task}
-     */
-    <V> Future<V> submit(Callable<V> task, Object clientId);
+  /**
+   * @param task     {@link java.util.concurrent.Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
+   *                 run in parallel, albeit throttled at a maximum concurrency.
+   * @param clientId A key representing a client whose tasks are throttled while running in parallel
+   * @param <V>      Type of the task result
+   * @return {@link java.util.concurrent.Future} representing the result of the {@code task}
+   */
+  <V> Future<V> submit(Callable<V> task, Object clientId);
 }
 ```
 
@@ -49,34 +49,34 @@ public interface ConcurrentThrottler {
 
 @Nested
 class submit {
-    @Test
-    void customized() {
-        Conottle conottle = new Conottle.Builder().throttleLimit(4).concurrentClientLimit(50).build();
-        String clientId1 = "clientId1";
-        String clientId2 = "clientId2";
-        int clientTaskTotal = 10;
+  @Test
+  void customized() {
+    Conottle conottle = new Conottle.Builder().throttleLimit(4).concurrentClientLimit(50).build();
+    String clientId1 = "clientId1";
+    String clientId2 = "clientId2";
+    int clientTaskTotal = 10;
 
-        List<Future<Task>> futures = new ArrayList<>(); // class Task implements Callable<Task>
-        for (int i = 0; i < clientTaskTotal; i++) {
-            futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
-            futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
-        }
-
-        int clientTotal = 2;
-        assertEquals(clientTotal, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
-        int taskTotal = futures.size();
-        info.log("none of {} tasks will be done immediately", taskTotal);
-        for (Future<Task> future : futures) {
-            assertFalse(future.isDone());
-        }
-        info.log("all of {} tasks will be done eventually", taskTotal);
-        for (Future<Task> future : futures) {
-            await().until(future::isDone);
-            assertTrue(future.get().isComplete());
-        }
-        info.log("no active executor lingers when all tasks complete");
-        await().until(() -> conottle.countActiveExecutors() == 0);
+    List<Future<Task>> futures = new ArrayList<>(); // class Task implements Callable<Task>
+    for (int i = 0; i < clientTaskTotal; i++) {
+      futures.add(conottle.submit(new Task(clientId1 + "-task-" + i, MIN_TASK_DURATION), clientId1));
+      futures.add(conottle.submit(new Task(clientId2 + "-task-" + i, MIN_TASK_DURATION), clientId2));
     }
+
+    int clientTotal = 2;
+    assertEquals(clientTotal, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
+    int taskTotal = futures.size();
+    info.log("none of {} tasks will be done immediately", taskTotal);
+    for (Future<Task> future : futures) {
+      assertFalse(future.isDone());
+    }
+    info.log("all of {} tasks will be done eventually", taskTotal);
+    for (Future<Task> future : futures) {
+      await().until(future::isDone);
+      assertTrue(future.get().isComplete());
+    }
+    info.log("no active executor lingers when all tasks complete");
+    await().until(() -> conottle.countActiveExecutors() == 0);
+  }
 }
 ```
 
