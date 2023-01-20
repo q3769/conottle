@@ -74,8 +74,8 @@ class ConottleTest {
         void noNegativeLimit() {
             Conottle.Builder builder = new Conottle.Builder();
 
-            assertThrows(IllegalArgumentException.class, () -> builder.throttleLimit(-1));
-            assertThrows(IllegalArgumentException.class, () -> builder.concurrentClientLimit(-1));
+            assertThrows(IllegalArgumentException.class, () -> builder.maxClientConcurrency(-1));
+            assertThrows(IllegalArgumentException.class, () -> builder.maxConcurrentClients(-1));
         }
     }
 
@@ -88,12 +88,12 @@ class ConottleTest {
 
         @Test
         void customizedMaxActiveClients() {
-            testExecute(new Conottle.Builder().concurrentClientLimit(4).build());
+            testExecute(new Conottle.Builder().maxConcurrentClients(4).build());
         }
 
         @Test
         void customizedThrottleLimit() {
-            testExecute(new Conottle.Builder().throttleLimit(3).build());
+            testExecute(new Conottle.Builder().maxClientConcurrency(3).build());
         }
     }
 
@@ -101,7 +101,7 @@ class ConottleTest {
     class submit {
         @Test
         void customized() throws ExecutionException, InterruptedException {
-            Conottle conottle = new Conottle.Builder().throttleLimit(4).concurrentClientLimit(50).build();
+            Conottle conottle = new Conottle.Builder().maxClientConcurrency(4).maxConcurrentClients(50).build();
             int clientCount = 2;
             int clientTaskCount = 10;
 

@@ -46,8 +46,8 @@ import java.util.concurrent.*;
 @ToString
 public final class Conottle implements ConcurrentThrottler {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
-    private static final int DEFAULT_CONCURRENT_CLIENT_LIMIT = Integer.MAX_VALUE;
-    private static final int DEFAULT_THROTTLE_LIMIT = Runtime.getRuntime().availableProcessors();
+    private static final int DEFAULT_MAX_CLIENT_CONCURRENCY = Runtime.getRuntime().availableProcessors();
+    private static final int DEFAULT_MAX_CONCURRENT_CLIENTS = Integer.MAX_VALUE;
     private static final Logger logger = Logger.instance();
     private final ConcurrentMap<Object, ClientTaskExecutor> activeExecutors;
     private final ObjectPool<ExecutorService> throttlingExecutorServicePool;
@@ -55,9 +55,9 @@ public final class Conottle implements ConcurrentThrottler {
     private Conottle(@NonNull Builder builder) {
         this.activeExecutors = new ConcurrentHashMap<>();
         this.throttlingExecutorServicePool = new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(
-                builder.throttleLimit == 0 ? DEFAULT_THROTTLE_LIMIT : builder.throttleLimit),
-                getExecutorServicePoolConfig(builder.concurrentClientLimit == 0 ? DEFAULT_CONCURRENT_CLIENT_LIMIT :
-                        builder.concurrentClientLimit));
+                builder.maxClientConcurrency == 0 ? DEFAULT_MAX_CLIENT_CONCURRENCY : builder.maxClientConcurrency),
+                getExecutorServicePoolConfig(builder.maxConcurrentClients == 0 ? DEFAULT_MAX_CONCURRENT_CLIENTS :
+                        builder.maxConcurrentClients));
         logger.atInfo().log("constructed {}", this);
     }
 
@@ -124,8 +124,8 @@ public final class Conottle implements ConcurrentThrottler {
      */
     @NoArgsConstructor
     public static final class Builder {
-        private int concurrentClientLimit;
-        private int throttleLimit;
+        private int maxClientConcurrency;
+        private int maxConcurrentClients;
 
         /**
          * @return the concurrent throttler instance
@@ -136,29 +136,29 @@ public final class Conottle implements ConcurrentThrottler {
         }
 
         /**
-         * @param val max number of clients that can be concurrent serviced
-         * @return the same builder instance
-         */
-        public Builder concurrentClientLimit(int val) {
-            if (val < 0) {
-                throw new IllegalArgumentException(
-                        "Max currently serviced client count cannot be negative but was given: " + val);
-            }
-            this.concurrentClientLimit = val;
-            return this;
-        }
-
-        /**
          * @param val max number of tasks that can be concurrently executed per each client
          * @return the name builder instance
          */
-        public Builder throttleLimit(int val) {
+        public Builder maxClientConcurrency(int val) {
             if (val < 0) {
                 throw new IllegalArgumentException(
                         "Throttle of concurrent execution thread count per client cannot be negative but was given: "
                                 + val);
             }
-            throttleLimit = val;
+            maxClientConcurrency = val;
+            return this;
+        }
+
+        /**
+         * @param val max number of clients that can be concurrent serviced
+         * @return the same builder instance
+         */
+        public Builder maxConcurrentClients(int val) {
+            if (val < 0) {
+                throw new IllegalArgumentException(
+                        "Max currently serviced client count cannot be negative but was given: " + val);
+            }
+            maxConcurrentClients = val;
             return this;
         }
     }
@@ -217,19 +217,20 @@ public final class Conottle implements ConcurrentThrottler {
      */
     private static final class ThrottlingExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
         private static final Logger logger = Logger.instance();
-        private final int throttleLimit;
+        private final int maxClientConcurrency;
 
         /**
-         * @param throttleLimit max concurrent threads of the {@link ExecutorService} instance produced by this factory
+         * @param maxClientConcurrency max concurrent threads of the {@link ExecutorService} instance produced by this
+         *                             factory
          */
-        public ThrottlingExecutorServiceFactory(int throttleLimit) {
-            this.throttleLimit = throttleLimit;
+        public ThrottlingExecutorServiceFactory(int maxClientConcurrency) {
+            this.maxClientConcurrency = maxClientConcurrency;
         }
 
         @Override
         @NonNull
         public ExecutorService create() {
-            return Executors.newFixedThreadPool(throttleLimit);
+            return Executors.newFixedThreadPool(maxClientConcurrency);
         }
 
         @Override
