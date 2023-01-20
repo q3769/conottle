@@ -46,7 +46,7 @@ import java.util.concurrent.*;
 @ToString
 public final class Conottle implements ConcurrentThrottler {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
-    private static final int DEFAULT_MAX_ACTIVE_EXECUTORS = Integer.MAX_VALUE;
+    private static final int DEFAULT_CONCURRENT_CLIENT_LIMIT = Integer.MAX_VALUE;
     private static final int DEFAULT_THROTTLE_LIMIT = Runtime.getRuntime().availableProcessors();
     private static final Logger logger = Logger.instance();
     private final ConcurrentMap<Object, ClientTaskExecutor> activeExecutors;
@@ -56,7 +56,7 @@ public final class Conottle implements ConcurrentThrottler {
         this.activeExecutors = new ConcurrentHashMap<>();
         this.throttlingExecutorServicePool = new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(
                 builder.throttleLimit == 0 ? DEFAULT_THROTTLE_LIMIT : builder.throttleLimit),
-                getExecutorServicePoolConfig(builder.concurrentClientLimit == 0 ? DEFAULT_MAX_ACTIVE_EXECUTORS :
+                getExecutorServicePoolConfig(builder.concurrentClientLimit == 0 ? DEFAULT_CONCURRENT_CLIENT_LIMIT :
                         builder.concurrentClientLimit));
         logger.atInfo().log("constructed {}", this);
     }
