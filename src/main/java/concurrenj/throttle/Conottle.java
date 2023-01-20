@@ -50,19 +50,19 @@ public final class Conottle implements ConcurrentThrottler {
     private static final int DEFAULT_THROTTLE_LIMIT = Runtime.getRuntime().availableProcessors();
     private static final Logger logger = Logger.instance();
     private final ConcurrentMap<Object, ClientTaskExecutor> activeExecutors;
-    private final ObjectPool<ExecutorService> throttlingClientTaskServicePool;
+    private final ObjectPool<ExecutorService> throttlingExecutorServicePool;
 
     private Conottle(@NonNull Builder builder) {
         this.activeExecutors = new ConcurrentHashMap<>();
-        this.throttlingClientTaskServicePool = new GenericObjectPool<>(new ClientExecutorServiceFactory(
+        this.throttlingExecutorServicePool = new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(
                 builder.throttleLimit == 0 ? DEFAULT_THROTTLE_LIMIT : builder.throttleLimit),
-                getClientExecutorServicePoolConfig(builder.concurrentClientLimit == 0 ? DEFAULT_MAX_ACTIVE_EXECUTORS :
+                getExecutorServicePoolConfig(builder.concurrentClientLimit == 0 ? DEFAULT_MAX_ACTIVE_EXECUTORS :
                         builder.concurrentClientLimit));
         logger.atInfo().log("constructed {}", this);
     }
 
     @NonNull
-    private static GenericObjectPoolConfig<ExecutorService> getClientExecutorServicePoolConfig(int maxConcurrentlyServicedClients) {
+    private static GenericObjectPoolConfig<ExecutorService> getExecutorServicePoolConfig(int maxConcurrentlyServicedClients) {
         GenericObjectPoolConfig<ExecutorService> throttlingExecutorServicePoolConfig = new GenericObjectPoolConfig<>();
         throttlingExecutorServicePoolConfig.setMaxTotal(maxConcurrentlyServicedClients);
         return throttlingExecutorServicePoolConfig;
@@ -103,19 +103,18 @@ public final class Conottle implements ConcurrentThrottler {
 
     private ExecutorService borrowFromPoolFailFast() {
         try {
-            return throttlingClientTaskServicePool.borrowObject();
+            return throttlingExecutorServicePool.borrowObject();
         } catch (Exception e) {
-            throw new IllegalStateException("failed to borrow executor from pool " + throttlingClientTaskServicePool,
-                    e);
+            throw new IllegalStateException("failed to borrow executor from pool " + throttlingExecutorServicePool, e);
         }
     }
 
     private void returnToPoolIgnoreError(ExecutorService executorService) {
         try {
-            throttlingClientTaskServicePool.returnObject(executorService);
+            throttlingExecutorServicePool.returnObject(executorService);
         } catch (Exception e) {
             logger.atWarn()
-                    .log(e, "ignoring failure of returning {} to {}", executorService, throttlingClientTaskServicePool);
+                    .log(e, "ignoring failure of returning {} to {}", executorService, throttlingExecutorServicePool);
         }
     }
 
@@ -165,49 +164,6 @@ public final class Conottle implements ConcurrentThrottler {
     }
 
     /**
-     * Creates pooled {@link ExecutorService} instances to facilitate async client task executions. The max concurrent
-     * threads of each `ExecutorService` instance will be the throttle limit of the client that the instance is
-     * supporting.
-     */
-    private static final class ClientExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
-        private static final Logger logger = Logger.instance();
-        private final int throttleLimit;
-
-        /**
-         * @param throttleLimit max concurrent threads of the {@link ExecutorService} instance produced by this factory
-         */
-        public ClientExecutorServiceFactory(int throttleLimit) {
-            this.throttleLimit = throttleLimit;
-        }
-
-        @Override
-        @NonNull
-        public ExecutorService create() {
-            return Executors.newFixedThreadPool(throttleLimit);
-        }
-
-        @Override
-        @NonNull
-        public PooledObject<ExecutorService> wrap(ExecutorService executorService) {
-            return new DefaultPooledObject<>(executorService);
-        }
-
-        @Override
-        public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode) {
-            try {
-                super.destroyObject(pooledExecutorService, destroyMode);
-            } catch (Exception e) {
-                logger.atWarn()
-                        .log(e,
-                                "ignoring call-super error while destroying {} with {} mode",
-                                pooledExecutorService,
-                                destroyMode);
-            }
-            pooledExecutorService.getObject().shutdown();
-        }
-    }
-
-    /**
      * Not thread safe; needs to be synchronized.
      */
     @NotThreadSafe
@@ -253,5 +209,48 @@ public final class Conottle implements ConcurrentThrottler {
     @Data
     private static final class TaskStageHolder<V> {
         private CompletableFuture<V> stage;
+    }
+
+    /**
+     * Creates pooled {@link ExecutorService} instances to facilitate async client task executions. The max concurrent
+     * threads of each `ExecutorService` instance will be the throttle limit of the client that the instance is
+     * supporting.
+     */
+    private static final class ThrottlingExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
+        private static final Logger logger = Logger.instance();
+        private final int throttleLimit;
+
+        /**
+         * @param throttleLimit max concurrent threads of the {@link ExecutorService} instance produced by this factory
+         */
+        public ThrottlingExecutorServiceFactory(int throttleLimit) {
+            this.throttleLimit = throttleLimit;
+        }
+
+        @Override
+        @NonNull
+        public ExecutorService create() {
+            return Executors.newFixedThreadPool(throttleLimit);
+        }
+
+        @Override
+        @NonNull
+        public PooledObject<ExecutorService> wrap(ExecutorService executorService) {
+            return new DefaultPooledObject<>(executorService);
+        }
+
+        @Override
+        public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode) {
+            try {
+                super.destroyObject(pooledExecutorService, destroyMode);
+            } catch (Exception e) {
+                logger.atWarn()
+                        .log(e,
+                                "ignoring call-super error while destroying {} with {} mode",
+                                pooledExecutorService,
+                                destroyMode);
+            }
+            pooledExecutorService.getObject().shutdown();
+        }
     }
 }
