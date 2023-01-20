@@ -89,7 +89,7 @@ public final class Conottle implements ConcurrentThrottler {
         taskStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
                 (sameClientId, checkedClientTaskExecutor) -> {
                     if (checkedClientTaskExecutor.decrementAndGetPendingTaskCount() == 0) {
-                        returnToPoolIgnoreError(checkedClientTaskExecutor.getExecutorService());
+                        returnToPoolIgnoreError(checkedClientTaskExecutor.getThrottlingExecutorService());
                         return null;
                     }
                     return checkedClientTaskExecutor;
@@ -169,11 +169,11 @@ public final class Conottle implements ConcurrentThrottler {
     @NotThreadSafe
     @ToString
     private static final class ClientTaskExecutor {
-        private final ExecutorService executorService;
+        private final ExecutorService throttlingExecutorService;
         private int pendingTaskCount;
 
-        public ClientTaskExecutor(ExecutorService executorService) {
-            this.executorService = executorService;
+        public ClientTaskExecutor(ExecutorService throttlingExecutorService) {
+            this.throttlingExecutorService = throttlingExecutorService;
         }
 
         public int decrementAndGetPendingTaskCount() {
@@ -184,8 +184,8 @@ public final class Conottle implements ConcurrentThrottler {
             return --pendingTaskCount;
         }
 
-        public ExecutorService getExecutorService() {
-            return executorService;
+        public ExecutorService getThrottlingExecutorService() {
+            return throttlingExecutorService;
         }
 
         @NonNull
@@ -197,7 +197,7 @@ public final class Conottle implements ConcurrentThrottler {
                 } catch (Exception e) {
                     throw new CompletionException(e);
                 }
-            }, executorService);
+            }, throttlingExecutorService);
         }
     }
 
