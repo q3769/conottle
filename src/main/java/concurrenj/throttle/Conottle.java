@@ -213,8 +213,7 @@ public final class Conottle implements ConcurrentThrottler {
 
     /**
      * Creates pooled {@link ExecutorService} instances to facilitate async client task executions. The max concurrent
-     * threads of each `ExecutorService` instance will be the throttle limit of the client that the instance is
-     * supporting.
+     * threads of each {@code ExecutorService} instance will be the throttle limit of each client.
      */
     private static final class ThrottlingExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
         private static final Logger logger = Logger.instance();
