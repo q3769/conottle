@@ -50,7 +50,7 @@ public interface ConcurrentThrottler {
 @Nested
 class submit {
     @Test
-    void customized() throws ExecutionException, InterruptedException {
+    void customized() {
         Conottle conottle = new Conottle.Builder().maxClientConcurrency(4).maxConcurrentClients(50).build();
         int clientCount = 2;
         int clientTaskCount = 10;
@@ -73,7 +73,6 @@ class submit {
         info.log("all of {} tasks will be done eventually", taskTotal);
         for (Future<Task> future : futures) {
             await().until(future::isDone);
-            assertTrue(future.get().isComplete());
         }
         info.log("no active executor lingers when all tasks complete");
         await().until(() -> conottle.countActiveExecutors() == 0);

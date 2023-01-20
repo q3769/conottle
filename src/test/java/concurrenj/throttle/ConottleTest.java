@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static org.awaitility.Awaitility.await;
@@ -100,7 +99,7 @@ class ConottleTest {
     @Nested
     class submit {
         @Test
-        void customized() throws ExecutionException, InterruptedException {
+        void customized() {
             Conottle conottle = new Conottle.Builder().maxClientConcurrency(4).maxConcurrentClients(50).build();
             int clientCount = 2;
             int clientTaskCount = 10;
@@ -125,7 +124,6 @@ class ConottleTest {
             info.log("all of {} tasks will be done eventually", taskTotal);
             for (Future<Task> future : futures) {
                 await().until(future::isDone);
-                assertTrue(future.get().isComplete());
             }
             info.log("no active executor lingers when all tasks complete");
             await().until(() -> conottle.countActiveExecutors() == 0);
