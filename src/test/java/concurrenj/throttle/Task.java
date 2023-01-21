@@ -40,7 +40,6 @@ public class Task implements Callable<Task>, Runnable {
     private final Duration minDuration;
     private final Duration pollInterval;
     private final Object taskId;
-    private boolean complete;
     private long endTimeMillis;
     private String executionThreadName;
     private long startTimeMillis;
@@ -55,9 +54,8 @@ public class Task implements Callable<Task>, Runnable {
     public Task call() {
         this.startTimeMillis = System.currentTimeMillis();
         this.executionThreadName = Thread.currentThread().getName();
-        trace.log("started {} with {}", this, this.executionThreadName);
-        this.complete = true;
-        await().pollInterval(pollInterval).atLeast(minDuration).until(this::isComplete);
+        trace.log("started {}", this);
+        await().pollInterval(pollInterval).atLeast(minDuration).until(() -> true);
         this.endTimeMillis = System.currentTimeMillis();
         trace.log("completed {} in {}", this, this.getActualDuration());
         return this;
@@ -73,5 +71,9 @@ public class Task implements Callable<Task>, Runnable {
     @Override
     public void run() {
         this.call();
+    }
+
+    private boolean isComplete() {
+        return this.endTimeMillis != 0;
     }
 }

@@ -51,7 +51,7 @@ public interface ConcurrentThrottler {
 class submit {
     @Test
     void customized() {
-        Conottle conottle = new Conottle.Builder().maxClientConcurrency(4).maxConcurrentClients(50).build();
+        Conottle conottle = new Conottle.Builder().maxSingleClientConcurrency(4).maxParallelClientCount(100).build();
         int clientCount = 2;
         int clientTaskCount = 10;
 
@@ -82,34 +82,29 @@ class submit {
 
 Both builder parameters are optional:
 
-- `maxClientConcurrency` is the maximum concurrency with which a given client's tasks can execute. If omitted, the
-  default is the number of the available processors to the JVM runtime - `Runtime.getRuntime().availableProcessors()`.
+- `maxSingleClientConcurrency` is the maximum concurrency at which one single client's tasks can execute. If omitted,
+  the default is `Runtime.getRuntime().availableProcessors()`.
 
-- `maxConcurrentClients` is the maximum number of clients that can be serviced in parallel. If omitted, the default is
-  unbounded - `Integer.MAX_VALUE`.
+- `maxParallelClientCount` is the maximum number of clients that can be serviced in parallel. If omitted, the default is
+  unbounded (`Integer.MAX_VALUE`).
 
-Note that, regardless of the parameter values, there is no limit on how many overall clients or tasks the API can
-support. The `maxConcurrentClients` parameter e.g. only limits on the concurrent number of clients whose tasks are
-actively executing in parallel at any given moment. Before proceeding, excessive clients/tasks will have to wait for
-active ones to run for completion - i.e. the throttling effect.
+Note that, regardless of the builder parameter values, there is no overall limit on how many clients or tasks the API
+can support. The parameters only limit the service concurrency of the API at a given moment. Before proceeding,
+excessive clients/tasks will have to wait for active ones to run for completion - i.e. the throttling effect.
 
-Each throttled client has its own dedicated executor. The executor is backed by a thread pool of maximum
-size `maxClientConcurrency`. Therefore, a client/executor's task execution concurrency will never go beyond, and always
-be throttled at its `maxClientConcurrency`.
+Each throttled client has its own dedicated executor. The executor is backed by a worker thread pool of maximum
+size `maxSingleClientConcurrency`. Therefore, a client/executor's task execution concurrency will never go beyond, and
+always be throttled at its `maxSingleClientConcurrency`.
 
-If both builder parameters are provided, the global maximum number of concurrent-execution threads is
-the `maxClientConcurrency` of each client/executor, multiplied by the `maxConcurrentClients`.
+The individual worker thread pools themselves are then also pooled, at a maximum pool size of `maxParallelClientCount`.
+This limits the total number of clients that can be serviced in parallel.
 
-An all-default builder builds a conottle instance that has unbounded `maxConcurrentClients`, while
-the `maxClientConcurrency` of each client is `Runtime.getRuntime().availableProcessors()`:
+If both builder parameters are provided, the global maximum number of concurrent-execution threads at any moment is
+the `maxSingleClientConcurrency` multiplied by the `maxParallelClientCount`.
 
-```jshelllanguage
-ConcurrentThrottler conottle = new Conottle.Builder().build();
-```
-
-Builder parameters can also be individually provided. E.g. a conottle instance from the following builder throttles the
-max concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
+Builder parameters can also be individually provided. E.g. a conottle instance from the following builder will throttle
+the concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
 
 ```jshelllanguage
-ConcurrentThrottler conottle = new Conottle.Builder().maxClientConcurrency(4).build();
+ConcurrentThrottler conottle = new Conottle.Builder().maxSingleClientConcurrency(4).build();
 ```

@@ -55,11 +55,11 @@ class ConottleTest {
         assertEquals(clientCount, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
         int taskTotal = futures.size();
         assertEquals(clientTaskCount * clientCount, taskTotal);
-        info.log("none of {} tasks will be done immediately", taskTotal);
+        info.log("none of the {} tasks will be done immediately", taskTotal);
         for (Future<Void> future : futures) {
             assertFalse(future.isDone());
         }
-        info.log("all of {} tasks will be done eventually", taskTotal);
+        info.log("all of the {} tasks will be done eventually", taskTotal);
         for (Future<Void> future : futures) {
             await().until(future::isDone);
         }
@@ -73,8 +73,8 @@ class ConottleTest {
         void noNegativeLimit() {
             Conottle.Builder builder = new Conottle.Builder();
 
-            assertThrows(IllegalArgumentException.class, () -> builder.maxClientConcurrency(-1));
-            assertThrows(IllegalArgumentException.class, () -> builder.maxConcurrentClients(-1));
+            assertThrows(IllegalArgumentException.class, () -> builder.maxSingleClientConcurrency(-1));
+            assertThrows(IllegalArgumentException.class, () -> builder.maxParallelClientCount(-1));
         }
     }
 
@@ -87,12 +87,12 @@ class ConottleTest {
 
         @Test
         void customizedMaxActiveClients() {
-            testExecute(new Conottle.Builder().maxConcurrentClients(4).build());
+            testExecute(new Conottle.Builder().maxParallelClientCount(42).build());
         }
 
         @Test
         void customizedThrottleLimit() {
-            testExecute(new Conottle.Builder().maxClientConcurrency(3).build());
+            testExecute(new Conottle.Builder().maxSingleClientConcurrency(3).build());
         }
     }
 
@@ -100,7 +100,8 @@ class ConottleTest {
     class submit {
         @Test
         void customized() {
-            Conottle conottle = new Conottle.Builder().maxClientConcurrency(4).maxConcurrentClients(50).build();
+            Conottle conottle =
+                    new Conottle.Builder().maxSingleClientConcurrency(4).maxParallelClientCount(100).build();
             int clientCount = 2;
             int clientTaskCount = 10;
 
@@ -117,11 +118,11 @@ class ConottleTest {
                     "should be 1:1 between a client and its executor");
             int taskTotal = futures.size();
             assertEquals(clientTaskCount * clientCount, taskTotal);
-            info.log("none of {} tasks will be done immediately", taskTotal);
+            info.log("none of the {} tasks will be done immediately", taskTotal);
             for (Future<Task> future : futures) {
                 assertFalse(future.isDone());
             }
-            info.log("all of {} tasks will be done eventually", taskTotal);
+            info.log("all of the {} tasks will be done eventually", taskTotal);
             for (Future<Task> future : futures) {
                 await().until(future::isDone);
             }
