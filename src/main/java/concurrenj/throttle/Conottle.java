@@ -216,7 +216,6 @@ public final class Conottle implements ConcurrentThrottler {
      * threads of each {@code ExecutorService} instance will be the throttle limit of each client.
      */
     private static final class ThrottlingExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
-        private static final Logger logger = Logger.instance();
         private final int maxExecutorServiceConcurrency;
 
         /**
@@ -240,17 +239,13 @@ public final class Conottle implements ConcurrentThrottler {
         }
 
         @Override
-        public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode) {
+        public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode)
+                throws Exception {
             try {
                 super.destroyObject(pooledExecutorService, destroyMode);
-            } catch (Exception e) {
-                logger.atWarn()
-                        .log(e,
-                                "Ignoring error from super class while destroying {} with {} mode",
-                                pooledExecutorService,
-                                destroyMode);
+            } finally {
+                pooledExecutorService.getObject().shutdown();
             }
-            pooledExecutorService.getObject().shutdown();
         }
     }
 }
