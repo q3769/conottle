@@ -79,18 +79,17 @@ public final class Conottle implements ConcurrentThrottler {
     @NonNull
     public <V> Future<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         TaskStageHolder<V> taskStageHolder = new TaskStageHolder<>();
-        activeExecutors.compute(clientId, (sameClientId, presentClientTaskExecutor) -> {
-            ClientTaskExecutor executor =
-                    presentClientTaskExecutor == null ? new ClientTaskExecutor(borrowFromPoolFailFast()) :
-                            presentClientTaskExecutor;
+        activeExecutors.compute(clientId, (k, presentClientTaskExecutor) -> {
+            ClientTaskExecutor executor = presentClientTaskExecutor == null ? new ClientTaskExecutor(borrowFromPool()) :
+                    presentClientTaskExecutor;
             taskStageHolder.setStage(executor.submit(task));
             return executor;
         });
         CompletableFuture<V> taskStage = taskStageHolder.getStage();
         taskStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
-                (sameClientId, checkedClientTaskExecutor) -> {
+                (k, checkedClientTaskExecutor) -> {
                     if (checkedClientTaskExecutor.decrementAndGetPendingTaskCount() == 0) {
-                        returnToPoolIgnoreError(checkedClientTaskExecutor.getThrottlingExecutorService());
+                        returnToPool(checkedClientTaskExecutor.getThrottlingExecutorService());
                         return null;
                     }
                     return checkedClientTaskExecutor;
@@ -102,7 +101,7 @@ public final class Conottle implements ConcurrentThrottler {
         return activeExecutors.size();
     }
 
-    private ExecutorService borrowFromPoolFailFast() {
+    private ExecutorService borrowFromPool() {
         try {
             return throttlingExecutorServicePool.borrowObject();
         } catch (Exception e) {
@@ -110,7 +109,7 @@ public final class Conottle implements ConcurrentThrottler {
         }
     }
 
-    private void returnToPoolIgnoreError(ExecutorService executorService) {
+    private void returnToPool(ExecutorService executorService) {
         try {
             throttlingExecutorServicePool.returnObject(executorService);
         } catch (Exception e) {
