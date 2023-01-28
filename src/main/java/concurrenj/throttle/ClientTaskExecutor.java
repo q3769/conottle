@@ -31,7 +31,7 @@ import java.util.concurrent.Future;
  * Implementation should provide throttle capability on concurrent tasks of each client, and optionally on total number
  * of clients serviced concurrently.
  */
-public interface ConcurrentThrottler {
+public interface ClientTaskExecutor {
     /**
      * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
      *                 are run in parallel, albeit throttled at a maximum concurrency.

@@ -27,7 +27,7 @@ Available at:
 ### API
 
 ```java
-public interface ConcurrentThrottler {
+public interface ClientTaskExecutor {
     /**
      * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
      *                 are run in parallel, albeit throttled at a maximum concurrency.
@@ -111,5 +111,5 @@ Builder parameters can also be individually provided. E.g. a conottle instance f
 the concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
 
 ```jshelllanguage
-ConcurrentThrottler conottle = new Conottle.Builder().maxSingleClientConcurrency(4).build();
+ClientTaskExecutor conottle = new Conottle.Builder().maxSingleClientConcurrency(4).build();
 ```

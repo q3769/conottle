@@ -46,12 +46,12 @@ import java.util.concurrent.*;
  */
 @ThreadSafe
 @ToString
-public final class Conottle implements ConcurrentThrottler {
+public final class Conottle implements ClientTaskExecutor {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
     private static final int DEFAULT_MAX_PARALLEL_CLIENT_COUNT = Integer.MAX_VALUE;
     private static final int DEFAULT_MAX_SINGLE_CLIENT_CONCURRENCY = Runtime.getRuntime().availableProcessors();
     private static final Logger logger = Logger.instance();
-    private final ConcurrentMap<Object, ClientTaskExecutor> activeExecutors;
+    private final ConcurrentMap<Object, PendingTaskCountingExecutor> activeExecutors;
     private final ObjectPool<ExecutorService> throttlingExecutorServicePool;
 
     private Conottle(@NonNull Builder builder) {
@@ -81,20 +81,21 @@ public final class Conottle implements ConcurrentThrottler {
     @NonNull
     public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         TaskStageHolder<V> taskStageHolder = new TaskStageHolder<>();
-        activeExecutors.compute(clientId, (k, presentClientTaskExecutor) -> {
-            ClientTaskExecutor executor = presentClientTaskExecutor == null ? new ClientTaskExecutor(borrowFromPool()) :
-                    presentClientTaskExecutor;
+        activeExecutors.compute(clientId, (k, presentPendingTaskCountingExecutor) -> {
+            PendingTaskCountingExecutor executor =
+                    presentPendingTaskCountingExecutor == null ? new PendingTaskCountingExecutor(borrowFromPool()) :
+                            presentPendingTaskCountingExecutor;
             taskStageHolder.setStage(executor.submit(task));
             return executor;
         });
         CompletableFuture<V> taskStage = taskStageHolder.getStage();
         taskStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
-                (k, checkedClientTaskExecutor) -> {
-                    if (checkedClientTaskExecutor.decrementAndGetPendingTaskCount() == 0) {
-                        returnToPool(checkedClientTaskExecutor.getThrottlingExecutorService());
+                (k, checkedPendingTaskCountingExecutor) -> {
+                    if (checkedPendingTaskCountingExecutor.decrementAndGetPendingTaskCount() == 0) {
+                        returnToPool(checkedPendingTaskCountingExecutor.getThrottlingExecutorService());
                         return null;
                     }
-                    return checkedClientTaskExecutor;
+                    return checkedPendingTaskCountingExecutor;
                 }), ADMIN_EXECUTOR_SERVICE);
         return taskStage;
     }
@@ -169,11 +170,11 @@ public final class Conottle implements ConcurrentThrottler {
      */
     @NotThreadSafe
     @ToString
-    private static final class ClientTaskExecutor {
+    private static final class PendingTaskCountingExecutor {
         private final ExecutorService throttlingExecutorService;
         private int pendingTaskCount;
 
-        public ClientTaskExecutor(ExecutorService throttlingExecutorService) {
+        public PendingTaskCountingExecutor(ExecutorService throttlingExecutorService) {
             this.throttlingExecutorService = throttlingExecutorService;
         }
 
