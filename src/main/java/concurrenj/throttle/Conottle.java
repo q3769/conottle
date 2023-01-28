@@ -25,8 +25,10 @@
 package concurrenj.throttle;
 
 import elf4j.Logger;
-import lombok.*;
-import lombok.experimental.Delegate;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.ToString;
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.DestroyMode;
 import org.apache.commons.pool2.ObjectPool;
@@ -71,13 +73,13 @@ public final class Conottle implements ConcurrentThrottler {
 
     @Override
     @NonNull
-    public Future<Void> execute(@NonNull Runnable command, @NonNull Object clientId) {
+    public CompletableFuture<Void> execute(@NonNull Runnable command, @NonNull Object clientId) {
         return submit(Executors.callable(command, null), clientId);
     }
 
     @Override
     @NonNull
-    public <V> Future<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
+    public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         TaskStageHolder<V> taskStageHolder = new TaskStageHolder<>();
         activeExecutors.compute(clientId, (k, presentClientTaskExecutor) -> {
             ClientTaskExecutor executor = presentClientTaskExecutor == null ? new ClientTaskExecutor(borrowFromPool()) :
@@ -94,7 +96,7 @@ public final class Conottle implements ConcurrentThrottler {
                     }
                     return checkedClientTaskExecutor;
                 }), ADMIN_EXECUTOR_SERVICE);
-        return new MinimalFuture<>(taskStage);
+        return taskStage;
     }
 
     int countActiveExecutors() {
@@ -198,11 +200,6 @@ public final class Conottle implements ConcurrentThrottler {
                 }
             }, throttlingExecutorService);
         }
-    }
-
-    @RequiredArgsConstructor
-    private static final class MinimalFuture<V> implements Future<V> {
-        @Delegate private final Future<V> delegate;
     }
 
     @Data
