@@ -60,9 +60,9 @@ public final class Conottle implements ClientTaskExecutor {
     }
 
     @NonNull
-    private static GenericObjectPoolConfig<ExecutorService> getExecutorServicePoolConfig(int maxConcurrentlyServicedClients) {
+    private static GenericObjectPoolConfig<ExecutorService> getExecutorServicePoolConfig(int maxPoolCapacity) {
         GenericObjectPoolConfig<ExecutorService> throttlingExecutorServicePoolConfig = new GenericObjectPoolConfig<>();
-        throttlingExecutorServicePoolConfig.setMaxTotal(maxConcurrentlyServicedClients);
+        throttlingExecutorServicePoolConfig.setMaxTotal(maxPoolCapacity);
         return throttlingExecutorServicePoolConfig;
     }
 
