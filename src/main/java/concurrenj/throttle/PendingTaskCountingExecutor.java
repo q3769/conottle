@@ -34,7 +34,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Not thread safe; needs to be synchronized.
+ * Not thread safe; should to be used in a synchronized context while multithreading.
  */
 @NotThreadSafe
 @ToString

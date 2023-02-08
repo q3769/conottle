@@ -29,7 +29,7 @@ import java.util.concurrent.Future;
 
 /**
  * Implementation should provide throttle capability on concurrent tasks of each client, and optionally on total number
- * of clients serviced concurrently.
+ * of clients serviced in parallel.
  */
 public interface ClientTaskExecutor {
     /**
