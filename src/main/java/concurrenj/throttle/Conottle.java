@@ -140,11 +140,9 @@ public final class Conottle implements ClientTaskExecutor {
          * @return the same builder instance
          */
         public Builder maxParallelClientCount(int val) {
-            if (val < 0) {
-                throw new IllegalArgumentException(
-                        "Max currently serviced client count cannot be negative but was given: " + val);
+            if (val > 0) {
+                maxParallelClientCount = val;
             }
-            maxParallelClientCount = val;
             return this;
         }
 
@@ -153,11 +151,9 @@ public final class Conottle implements ClientTaskExecutor {
          * @return the name builder instance
          */
         public Builder maxSingleClientConcurrency(int val) {
-            if (val < 0) {
-                throw new IllegalArgumentException(
-                        "Max task execution concurrency per each client cannot be negative but was given: " + val);
+            if (val > 0) {
+                maxSingleClientConcurrency = val;
             }
-            maxSingleClientConcurrency = val;
             return this;
         }
     }

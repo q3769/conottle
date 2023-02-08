@@ -34,7 +34,8 @@ import java.util.List;
 import java.util.concurrent.Future;
 
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ConottleTest {
     private static final Duration MIN_TASK_DURATION = Duration.ofMillis(100);
@@ -65,17 +66,6 @@ class ConottleTest {
         }
         info.log("no active executor lingers when all tasks complete");
         await().until(() -> conottle.countActiveExecutors() == 0);
-    }
-
-    @Nested
-    class build {
-        @Test
-        void noNegativeLimit() {
-            Conottle.Builder builder = new Conottle.Builder();
-
-            assertThrows(IllegalArgumentException.class, () -> builder.maxSingleClientConcurrency(-1));
-            assertThrows(IllegalArgumentException.class, () -> builder.maxParallelClientCount(-1));
-        }
     }
 
     @Nested
