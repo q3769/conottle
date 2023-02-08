@@ -108,7 +108,8 @@ global maximum number of concurrent-execution threads at any moment is the `maxS
 the `maxParallelClientCount`.
 
 Builder parameters can also be individually provided. E.g. a conottle instance from the following builder will throttle
-the concurrency of each client's tasks at 4, and has no limit on the total number of clients serviced in parallel:
+the concurrency of each client's tasks at 4, and has no limit (`Integer.MAX_VALUE`) on the total number of clients
+serviced in parallel:
 
 ```jshelllanguage
 ClientTaskExecutor conottle = new Conottle.Builder().maxSingleClientConcurrency(4).build();
