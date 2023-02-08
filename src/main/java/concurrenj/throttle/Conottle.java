@@ -61,7 +61,7 @@ public final class Conottle implements ClientTaskExecutor {
                         builder.maxSingleClientConcurrency),
                 getExecutorServicePoolConfig(builder.maxParallelClientCount == 0 ? DEFAULT_MAX_PARALLEL_CLIENT_COUNT :
                         builder.maxParallelClientCount));
-        logger.atInfo().log("Constructed {}", this);
+        logger.atTrace().log("Success constructing: {}", this);
     }
 
     @NonNull
@@ -80,24 +80,24 @@ public final class Conottle implements ClientTaskExecutor {
     @Override
     @NonNull
     public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
-        TaskStageHolder<V> taskStageHolder = new TaskStageHolder<>();
+        TaskCompletionStageHolder<V> taskCompletionStageHolder = new TaskCompletionStageHolder<>();
         activeExecutors.compute(clientId, (k, presentPendingTaskCountingExecutor) -> {
             PendingTaskCountingExecutor executor =
                     presentPendingTaskCountingExecutor == null ? new PendingTaskCountingExecutor(borrowFromPool()) :
                             presentPendingTaskCountingExecutor;
-            taskStageHolder.setStage(executor.submit(task));
+            taskCompletionStageHolder.setStage(executor.incrementCountAndSubmit(task));
             return executor;
         });
-        CompletableFuture<V> taskStage = taskStageHolder.getStage();
-        taskStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
+        CompletableFuture<V> taskCompletionStage = taskCompletionStageHolder.getStage();
+        taskCompletionStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
                 (k, checkedPendingTaskCountingExecutor) -> {
-                    if (checkedPendingTaskCountingExecutor.decrementAndGetPendingTaskCount() == 0) {
+                    if (checkedPendingTaskCountingExecutor.decrementAndGetCount() == 0) {
                         returnToPool(checkedPendingTaskCountingExecutor.getThrottlingExecutorService());
                         return null;
                     }
                     return checkedPendingTaskCountingExecutor;
                 }), ADMIN_EXECUTOR_SERVICE);
-        return taskStage;
+        return taskCompletionStage;
     }
 
     int countActiveExecutors() {
@@ -113,12 +113,17 @@ public final class Conottle implements ClientTaskExecutor {
     }
 
     private void returnToPool(ExecutorService executorService) {
-        try {
-            throttlingExecutorServicePool.returnObject(executorService);
-        } catch (Exception e) {
-            logger.atWarn()
-                    .log(e, "Ignoring failure of returning {} to {}", executorService, throttlingExecutorServicePool);
-        }
+        ADMIN_EXECUTOR_SERVICE.submit(() -> {
+            try {
+                throttlingExecutorServicePool.returnObject(executorService);
+            } catch (Exception e) {
+                logger.atWarn()
+                        .log(e,
+                                "Ignoring failure of returning {} to {}",
+                                executorService,
+                                throttlingExecutorServicePool);
+            }
+        });
     }
 
     /**
@@ -178,7 +183,15 @@ public final class Conottle implements ClientTaskExecutor {
             this.throttlingExecutorService = throttlingExecutorService;
         }
 
-        public int decrementAndGetPendingTaskCount() {
+        private static <V> V call(Callable<V> task) {
+            try {
+                return task.call();
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }
+
+        public int decrementAndGetCount() {
             if (pendingTaskCount <= 0) {
                 throw new IllegalStateException(
                         "Cannot further decrement from pending task count: " + pendingTaskCount);
@@ -191,20 +204,14 @@ public final class Conottle implements ClientTaskExecutor {
         }
 
         @NonNull
-        public <V> CompletableFuture<V> submit(Callable<V> task) {
+        public <V> CompletableFuture<V> incrementCountAndSubmit(Callable<V> task) {
             pendingTaskCount++;
-            return CompletableFuture.supplyAsync(() -> {
-                try {
-                    return task.call();
-                } catch (Exception e) {
-                    throw new CompletionException(e);
-                }
-            }, throttlingExecutorService);
+            return CompletableFuture.supplyAsync(() -> call(task), throttlingExecutorService);
         }
     }
 
     @Data
-    private static final class TaskStageHolder<V> {
+    private static final class TaskCompletionStageHolder<V> {
         private CompletableFuture<V> stage;
     }
 
