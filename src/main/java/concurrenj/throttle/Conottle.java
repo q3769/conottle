@@ -76,10 +76,9 @@ public final class Conottle implements ClientTaskExecutor {
     @NonNull
     public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         TaskCompletionStageHolder<V> taskCompletionStageHolder = new TaskCompletionStageHolder<>();
-        activeExecutors.compute(clientId, (k, presentPendingTaskCountingExecutor) -> {
+        activeExecutors.compute(clientId, (k, presentExecutor) -> {
             PendingTaskCountingExecutor executor =
-                    presentPendingTaskCountingExecutor == null ? new PendingTaskCountingExecutor(borrowFromPool()) :
-                            presentPendingTaskCountingExecutor;
+                    (presentExecutor == null) ? new PendingTaskCountingExecutor(borrowFromPool()) : presentExecutor;
             taskCompletionStageHolder.setStage(executor.incrementCountAndSubmit(task));
             return executor;
         });
