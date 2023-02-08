@@ -89,10 +89,10 @@ class submit {
 
 Both builder parameters are optional:
 
-- `maxSingleClientConcurrency` is the maximum concurrency at which one single client's tasks can execute. If omitted,
-  the default is `Runtime.getRuntime().availableProcessors()`.
-- `maxParallelClientCount` is the maximum number of clients that can be serviced in parallel. If omitted, the default is
-  unbounded (`Integer.MAX_VALUE`).
+- `maxSingleClientConcurrency` is the maximum concurrency at which one single client's tasks can execute. If omitted or
+  set to a non-positive integer, then the default `Runtime.getRuntime().availableProcessors()` takes effect.
+- `maxParallelClientCount` is the maximum number of clients that can be serviced in parallel. If omitted or set to a
+  non-positive integer, then the default `Integer.MAX_VALUE` takes effect.
 
 Regardless of the builder parameter values, there is no overall limit on how many clients or tasks the API can support.
 The parameters only limit the service concurrency of the API at a given moment. Before proceeding, excessive
