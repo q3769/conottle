@@ -51,11 +51,9 @@ public final class Conottle implements ClientTaskExecutor {
 
     private Conottle(@NonNull Builder builder) {
         this.activeExecutors = new ConcurrentHashMap<>();
-        this.throttlingExecutorServicePool = new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(
-                builder.maxSingleClientConcurrency == 0 ? DEFAULT_MAX_SINGLE_CLIENT_CONCURRENCY :
-                        builder.maxSingleClientConcurrency),
-                getExecutorServicePoolConfig(builder.maxParallelClientCount == 0 ? DEFAULT_MAX_PARALLEL_CLIENT_COUNT :
-                        builder.maxParallelClientCount));
+        this.throttlingExecutorServicePool =
+                new GenericObjectPool<>(new ThrottlingExecutorServiceFactory(builder.maxSingleClientConcurrency),
+                        getExecutorServicePoolConfig(builder.maxParallelClientCount));
         logger.atTrace().log("Success constructing: {}", this);
     }
 
@@ -126,8 +124,8 @@ public final class Conottle implements ClientTaskExecutor {
      */
     @NoArgsConstructor
     public static final class Builder {
-        private int maxParallelClientCount;
-        private int maxSingleClientConcurrency;
+        private int maxParallelClientCount = DEFAULT_MAX_PARALLEL_CLIENT_COUNT;
+        private int maxSingleClientConcurrency = DEFAULT_MAX_SINGLE_CLIENT_CONCURRENCY;
 
         /**
          * @return the concurrent throttler instance
