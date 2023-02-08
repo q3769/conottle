@@ -29,15 +29,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.ToString;
-import org.apache.commons.pool2.BasePooledObjectFactory;
-import org.apache.commons.pool2.DestroyMode;
 import org.apache.commons.pool2.ObjectPool;
-import org.apache.commons.pool2.PooledObject;
-import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.concurrent.*;
 
@@ -170,86 +165,8 @@ public final class Conottle implements ClientTaskExecutor {
         }
     }
 
-    /**
-     * Not thread safe; needs to be synchronized.
-     */
-    @NotThreadSafe
-    @ToString
-    private static final class PendingTaskCountingExecutor {
-        private final ExecutorService throttlingExecutorService;
-        private int pendingTaskCount;
-
-        public PendingTaskCountingExecutor(ExecutorService throttlingExecutorService) {
-            this.throttlingExecutorService = throttlingExecutorService;
-        }
-
-        private static <V> V call(Callable<V> task) {
-            try {
-                return task.call();
-            } catch (Exception e) {
-                throw new CompletionException(e);
-            }
-        }
-
-        public int decrementAndGetCount() {
-            if (pendingTaskCount <= 0) {
-                throw new IllegalStateException(
-                        "Cannot further decrement from pending task count: " + pendingTaskCount);
-            }
-            return --pendingTaskCount;
-        }
-
-        public ExecutorService getThrottlingExecutorService() {
-            return throttlingExecutorService;
-        }
-
-        @NonNull
-        public <V> CompletableFuture<V> incrementCountAndSubmit(Callable<V> task) {
-            pendingTaskCount++;
-            return CompletableFuture.supplyAsync(() -> call(task), throttlingExecutorService);
-        }
-    }
-
     @Data
     private static final class TaskCompletionStageHolder<V> {
         private CompletableFuture<V> stage;
-    }
-
-    /**
-     * Creates pooled {@link ExecutorService} instances to facilitate async client task executions. The max concurrent
-     * threads of each {@code ExecutorService} instance will be the throttle limit of each client.
-     */
-    private static final class ThrottlingExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
-        private final int maxExecutorServiceConcurrency;
-
-        /**
-         * @param maxExecutorServiceConcurrency max concurrent threads of the {@link ExecutorService} instance produced
-         *                                      by this factory
-         */
-        public ThrottlingExecutorServiceFactory(int maxExecutorServiceConcurrency) {
-            this.maxExecutorServiceConcurrency = maxExecutorServiceConcurrency;
-        }
-
-        @Override
-        @NonNull
-        public ExecutorService create() {
-            return Executors.newFixedThreadPool(maxExecutorServiceConcurrency);
-        }
-
-        @Override
-        @NonNull
-        public PooledObject<ExecutorService> wrap(ExecutorService executorService) {
-            return new DefaultPooledObject<>(executorService);
-        }
-
-        @Override
-        public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode)
-                throws Exception {
-            try {
-                super.destroyObject(pooledExecutorService, destroyMode);
-            } finally {
-                pooledExecutorService.getObject().shutdown();
-            }
-        }
     }
 }
