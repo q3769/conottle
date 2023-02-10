@@ -73,7 +73,7 @@ public final class Conottle implements ClientTaskExecutor {
     @Override
     @NonNull
     public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
-        TaskCompletableFutureHolder<V> taskCompletableFutureHolder = new TaskCompletableFutureHolder<>();
+        CompletableFutureHolder<V> taskCompletableFutureHolder = new CompletableFutureHolder<>();
         activeExecutors.compute(clientId, (k, presentExecutor) -> {
             PendingTaskCountingExecutor executor =
                     (presentExecutor == null) ? new PendingTaskCountingExecutor(borrowFromPool()) : presentExecutor;
@@ -159,7 +159,7 @@ public final class Conottle implements ClientTaskExecutor {
     }
 
     @Data
-    private static final class TaskCompletableFutureHolder<V> {
+    private static final class CompletableFutureHolder<V> {
         private CompletableFuture<V> completableFuture;
     }
 }
