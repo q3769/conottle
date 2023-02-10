@@ -89,7 +89,7 @@ public final class Conottle implements ClientTaskExecutor {
                     }
                     return checkedExecutor;
                 }), ADMIN_EXECUTOR_SERVICE);
-        return taskCompletionStage;
+        return taskCompletionStage.thenApply(r -> r);
     }
 
     int countActiveExecutors() {
