@@ -82,12 +82,12 @@ public final class Conottle implements ClientTaskExecutor {
         });
         CompletableFuture<V> taskCompletionStage = taskCompletionStageHolder.getStage();
         taskCompletionStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
-                (k, checkedPendingTaskCountingExecutor) -> {
-                    if (checkedPendingTaskCountingExecutor.decrementAndGetCount() == 0) {
-                        returnToPool(checkedPendingTaskCountingExecutor.getThrottlingExecutorService());
+                (k, checkedExecutor) -> {
+                    if (checkedExecutor.decrementAndGetCount() == 0) {
+                        returnToPool(checkedExecutor.getThrottlingExecutorService());
                         return null;
                     }
-                    return checkedPendingTaskCountingExecutor;
+                    return checkedExecutor;
                 }), ADMIN_EXECUTOR_SERVICE);
         return taskCompletionStage;
     }
