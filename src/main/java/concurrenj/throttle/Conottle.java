@@ -73,15 +73,15 @@ public final class Conottle implements ClientTaskExecutor {
     @Override
     @NonNull
     public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
-        TaskCompletionStageHolder<V> taskCompletionStageHolder = new TaskCompletionStageHolder<>();
+        TaskCompletableFutureHolder<V> taskCompletableFutureHolder = new TaskCompletableFutureHolder<>();
         activeExecutors.compute(clientId, (k, presentExecutor) -> {
             PendingTaskCountingExecutor executor =
                     (presentExecutor == null) ? new PendingTaskCountingExecutor(borrowFromPool()) : presentExecutor;
-            taskCompletionStageHolder.setStage(executor.incrementCountAndSubmit(task));
+            taskCompletableFutureHolder.setCompletableFuture(executor.incrementCountAndSubmit(task));
             return executor;
         });
-        CompletableFuture<V> taskCompletionStage = taskCompletionStageHolder.getStage();
-        taskCompletionStage.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
+        CompletableFuture<V> taskCompletableFuture = taskCompletableFutureHolder.getCompletableFuture();
+        taskCompletableFuture.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
                 (k, checkedExecutor) -> {
                     if (checkedExecutor.decrementAndGetCount() == 0) {
                         returnToPool(checkedExecutor.getThrottlingExecutorService());
@@ -89,7 +89,7 @@ public final class Conottle implements ClientTaskExecutor {
                     }
                     return checkedExecutor;
                 }), ADMIN_EXECUTOR_SERVICE);
-        return taskCompletionStage.thenApply(r -> r);
+        return taskCompletableFuture.thenApply(r -> r);
     }
 
     int countActiveExecutors() {
@@ -159,7 +159,7 @@ public final class Conottle implements ClientTaskExecutor {
     }
 
     @Data
-    private static final class TaskCompletionStageHolder<V> {
-        private CompletableFuture<V> stage;
+    private static final class TaskCompletableFutureHolder<V> {
+        private CompletableFuture<V> completableFuture;
     }
 }
