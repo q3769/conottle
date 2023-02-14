@@ -95,7 +95,7 @@ Both builder parameters are optional:
   non-positive integer, then the default `Integer.MAX_VALUE` takes effect.
 
 Regardless of the builder parameter values, there is no limit on the total number of tasks or clients the API can
-support over the time. The parameters only limit the concurrency at a given moment. Before proceeding, excessive
+support over time. The parameters only limit the execution concurrency at a given moment. Before proceeding, excessive
 clients/tasks will have to wait for active ones to run for completion - i.e. the throttling effect.
 
 Each throttled client has its own dedicated executor. The executor is backed by a worker thread pool of maximum
