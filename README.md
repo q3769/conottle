@@ -94,23 +94,16 @@ Both builder parameters are optional:
 - `maxParallelClientCount` is the maximum number of clients that can be serviced in parallel. If omitted or set to a
   non-positive integer, then the default `Integer.MAX_VALUE` takes effect.
 
-Regardless of the builder parameter values, there is no limit on the total number of tasks or clients the API can
-support over time. The parameters only limit the execution concurrency at a given moment. Before proceeding, excessive
-clients/tasks will have to wait for active ones to run for completion - i.e. the throttling effect.
+There is no limit on the total number of tasks or clients the API can support over time. The builder parameters only
+limit the execution concurrency at any given moment - before proceeding, excessive tasks or clients will have to wait
+for active ones to run for completion - i.e. the throttling effect.
 
-Each throttled client has its own dedicated executor. The executor is backed by a worker thread pool of maximum
-size `maxSingleClientConcurrency`. Therefore, a client/executor's task execution concurrency will never go beyond, and
-always be throttled at its `maxSingleClientConcurrency`.
+Each client has its own dedicated executor. The executor is backed by a worker thread pool with maximum
+size `maxSingleClientConcurrency`. Therefore, the task execution concurrency of the client/executor will never go
+beyond, and always be throttled at `maxSingleClientConcurrency`.
 
-The individual worker thread pools themselves are then also pooled, at a maximum pool size of `maxParallelClientCount`.
-This limits the total number of clients that can be serviced in parallel. If both builder parameters are provided, the
-global maximum number of concurrent-execution threads at any moment is the `maxSingleClientConcurrency` multiplied by
-the `maxParallelClientCount`.
+The individual client worker thread pools themselves are then also pooled, at a maximum pool size
+of `maxParallelClientCount`. This limits the total number of clients that can be serviced in parallel.
 
-Builder parameters can also be individually provided. E.g. a conottle instance from the following builder will throttle
-the concurrency of each client's tasks at 4, and has no limit (`Integer.MAX_VALUE`) on the total number of clients
-serviced in parallel:
-
-```jshelllanguage
-ClientTaskExecutor conottle = new Conottle.Builder().maxSingleClientConcurrency(4).build();
-```
+If both builder parameters are provided, the global maximum number of concurrent-execution threads at any moment is
+the `maxSingleClientConcurrency` multiplied by the `maxParallelClientCount`.
