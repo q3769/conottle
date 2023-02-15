@@ -98,11 +98,11 @@ There is no limit on the total number of tasks or clients the API can support ov
 limit the execution concurrency at any given moment - before proceeding, excessive tasks or clients will have to wait
 for active ones to run for completion - i.e. the throttling effect.
 
-Each client has its own dedicated executor. The executor is backed by a worker thread pool with maximum
+Each individual client has its own dedicated executor. The executor is backed by a worker thread pool with maximum
 size `maxSingleClientConcurrency`. Therefore, the task execution concurrency of the client/executor will never go
 beyond, and always be throttled at `maxSingleClientConcurrency`.
 
-The individual client worker thread pools themselves are then also pooled, at a maximum pool size
+The individual client worker thread pools themselves are then also pooled collectively, at a maximum pool size
 of `maxParallelClientCount`. This limits the total number of clients that can be serviced in parallel.
 
 If both builder parameters are provided, the global maximum number of concurrent-execution threads at any moment is
