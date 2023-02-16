@@ -99,8 +99,8 @@ limit the execution concurrency at any given moment - before proceeding, excessi
 for active ones to run for completion - i.e. the throttling effect.
 
 Each individual client has its own dedicated executor. The executor is backed by a worker thread pool with maximum
-size `maxSingleClientConcurrency`. Therefore, the task execution concurrency of the client/executor will never go
-beyond, and always be throttled at `maxSingleClientConcurrency`.
+size `maxSingleClientConcurrency`. Thus, the client's execution concurrency can never go beyond, and will always be
+throttled at `maxSingleClientConcurrency`.
 
 The individual client worker thread pools themselves are then also pooled collectively, at a maximum pool size
 of `maxParallelClientCount`. This limits the total number of clients that can be serviced in parallel.
