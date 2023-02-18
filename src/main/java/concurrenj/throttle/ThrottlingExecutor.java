@@ -40,7 +40,7 @@ import java.util.concurrent.ExecutorService;
 @ToString
 final class ThrottlingExecutor {
     /**
-     * The max concurrency of the executor is bound by the size of this thread pool.
+     * Thread pool that throttles the max concurrency of this executor
      */
     private final ExecutorService throttlingExecutorService;
     private int pendingTaskCount;
@@ -63,7 +63,7 @@ final class ThrottlingExecutor {
     /**
      * To be called on completion of each submitted task
      *
-     * @return pending task count after decrementing the current value by one, accounting for the completion of one
+     * @return the pending task count after decrementing the current value by one, accounting for the completion of one
      *         task. Within the synchronized context, a zero return value unambiguously indicates no more in-flight task
      *         pending execution on this executor.
      */
