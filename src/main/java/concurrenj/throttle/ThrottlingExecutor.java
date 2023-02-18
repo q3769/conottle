@@ -34,15 +34,21 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Not thread safe; should to be used in a synchronized context while multithreading.
+ * Not thread safe: Any and all public methods always to be used in a synchronized context while multithreading.
  */
 @NotThreadSafe
 @ToString
-final class PendingTaskCountingExecutor {
+final class ThrottlingExecutor {
+    /**
+     * The max concurrency of the executor is bound by the size of this thread pool.
+     */
     private final ExecutorService throttlingExecutorService;
     private int pendingTaskCount;
 
-    public PendingTaskCountingExecutor(ExecutorService throttlingExecutorService) {
+    /**
+     * @param throttlingExecutorService the backing thread pool facilitating the async executions of this executor.
+     */
+    public ThrottlingExecutor(ExecutorService throttlingExecutorService) {
         this.throttlingExecutorService = throttlingExecutorService;
     }
 
@@ -54,20 +60,27 @@ final class PendingTaskCountingExecutor {
         }
     }
 
-    public int decrementAndGetCount() {
+    /**
+     * To be called on completion of each submitted task
+     *
+     * @return pending task count after decrementing the current value by one, accounting for the completion of one
+     *         task. Within the synchronized context, a zero return value unambiguously indicates no more in-flight task
+     *         pending execution on this executor.
+     */
+    public int decrementAndGetPendingTaskCount() {
         if (pendingTaskCount <= 0) {
             throw new IllegalStateException("Cannot further decrement from pending task count: " + pendingTaskCount);
         }
         return --pendingTaskCount;
     }
 
-    public ExecutorService getThrottlingExecutorService() {
-        return throttlingExecutorService;
-    }
-
     @NonNull
-    public <V> CompletableFuture<V> incrementCountAndSubmit(Callable<V> task) {
+    public <V> CompletableFuture<V> incrementPendingTaskCountAndSubmit(Callable<V> task) {
         pendingTaskCount++;
         return CompletableFuture.supplyAsync(() -> call(task), throttlingExecutorService);
+    }
+
+    ExecutorService getThrottlingExecutorService() {
+        return throttlingExecutorService;
     }
 }

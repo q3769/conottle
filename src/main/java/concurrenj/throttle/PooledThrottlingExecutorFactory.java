@@ -30,43 +30,43 @@ import org.apache.commons.pool2.DestroyMode;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Creates pooled {@link ExecutorService} instances to facilitate async client task executions. The max concurrent
- * threads of each {@code ExecutorService} instance will be the throttle limit of each client.
+ * Creates pooled {@link ThrottlingExecutor} instances to facilitate async client task executions.
+ * The max concurrent threads of each {@code ThrottlingExecutor} instance will be the throttle limit
+ * of each client.
  */
-final class ThrottlingExecutorServiceFactory extends BasePooledObjectFactory<ExecutorService> {
+final class PooledThrottlingExecutorFactory extends BasePooledObjectFactory<ThrottlingExecutor> {
     private final int maxExecutorServiceConcurrency;
 
     /**
-     * @param maxExecutorServiceConcurrency max concurrent threads of the {@link ExecutorService} instance produced by
-     *                                      this factory
+     * @param maxExecutorServiceConcurrency max concurrent threads of the {@link ThrottlingExecutor}
+     *                                      instance produced by this factory
      */
-    public ThrottlingExecutorServiceFactory(int maxExecutorServiceConcurrency) {
+    public PooledThrottlingExecutorFactory(int maxExecutorServiceConcurrency) {
         this.maxExecutorServiceConcurrency = maxExecutorServiceConcurrency;
     }
 
     @Override
     @NonNull
-    public ExecutorService create() {
-        return Executors.newFixedThreadPool(maxExecutorServiceConcurrency);
+    public ThrottlingExecutor create() {
+        return new ThrottlingExecutor(Executors.newFixedThreadPool(maxExecutorServiceConcurrency));
     }
 
     @Override
     @NonNull
-    public PooledObject<ExecutorService> wrap(ExecutorService executorService) {
-        return new DefaultPooledObject<>(executorService);
+    public PooledObject<ThrottlingExecutor> wrap(ThrottlingExecutor throttlingExecutor) {
+        return new DefaultPooledObject<>(throttlingExecutor);
     }
 
     @Override
-    public void destroyObject(PooledObject<ExecutorService> pooledExecutorService, DestroyMode destroyMode)
-            throws Exception {
+    public void destroyObject(PooledObject<ThrottlingExecutor> pooledThrottlingExecutor,
+            DestroyMode destroyMode) throws Exception {
         try {
-            super.destroyObject(pooledExecutorService, destroyMode);
+            super.destroyObject(pooledThrottlingExecutor, destroyMode);
         } finally {
-            pooledExecutorService.getObject().shutdown();
+            pooledThrottlingExecutor.getObject().getThrottlingExecutorService().shutdown();
         }
     }
 }
