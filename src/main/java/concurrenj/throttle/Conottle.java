@@ -46,23 +46,22 @@ public final class Conottle implements ClientTaskExecutor {
     private static final int DEFAULT_MAX_PARALLEL_CLIENT_COUNT = Integer.MAX_VALUE;
     private static final int DEFAULT_MAX_SINGLE_CLIENT_CONCURRENCY = Runtime.getRuntime().availableProcessors();
     private static final Logger logger = Logger.instance();
-    private final ConcurrentMap<Object, ThrottlingExecutor> activeExecutors;
+    private final ConcurrentMap<Object, ThrottlingExecutor> activeThrottlingExecutors;
     private final ObjectPool<ThrottlingExecutor> throttlingExecutorPool;
 
     private Conottle(@NonNull Builder builder) {
-        this.activeExecutors = new ConcurrentHashMap<>();
+        this.activeThrottlingExecutors = new ConcurrentHashMap<>();
         this.throttlingExecutorPool =
                 new GenericObjectPool<>(new PooledThrottlingExecutorFactory(builder.maxSingleClientConcurrency),
-                        getExecutorPoolConfig(builder.maxParallelClientCount));
+                        getThrottlingExecutorPoolConfig(builder.maxParallelClientCount));
         logger.atTrace().log("Success constructing: {}", this);
     }
 
     @NonNull
-    private static GenericObjectPoolConfig<ThrottlingExecutor> getExecutorPoolConfig(int maxPoolCapacity) {
-        GenericObjectPoolConfig<ThrottlingExecutor> throttlingExecutorServicePoolConfig =
-                new GenericObjectPoolConfig<>();
-        throttlingExecutorServicePoolConfig.setMaxTotal(maxPoolCapacity);
-        return throttlingExecutorServicePoolConfig;
+    private static GenericObjectPoolConfig<ThrottlingExecutor> getThrottlingExecutorPoolConfig(int maxThrottlingExecutorPoolCapacity) {
+        GenericObjectPoolConfig<ThrottlingExecutor> throttlingExecutorPoolConfig = new GenericObjectPoolConfig<>();
+        throttlingExecutorPoolConfig.setMaxTotal(maxThrottlingExecutorPoolCapacity);
+        return throttlingExecutorPoolConfig;
     }
 
     @Override
@@ -75,13 +74,13 @@ public final class Conottle implements ClientTaskExecutor {
     @NonNull
     public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         CompletableFutureHolder<V> taskCompletableFutureHolder = new CompletableFutureHolder<>();
-        activeExecutors.compute(clientId, (k, presentExecutor) -> {
+        activeThrottlingExecutors.compute(clientId, (k, presentExecutor) -> {
             ThrottlingExecutor executor = (presentExecutor == null) ? borrowFromPool() : presentExecutor;
             taskCompletableFutureHolder.setCompletableFuture(executor.incrementPendingTaskCountAndSubmit(task));
             return executor;
         });
         CompletableFuture<V> taskCompletableFuture = taskCompletableFutureHolder.getCompletableFuture();
-        taskCompletableFuture.whenCompleteAsync((r, e) -> activeExecutors.computeIfPresent(clientId,
+        taskCompletableFuture.whenCompleteAsync((r, e) -> activeThrottlingExecutors.computeIfPresent(clientId,
                 (k, checkedExecutor) -> {
                     if (checkedExecutor.decrementAndGetPendingTaskCount() == 0) {
                         returnToPool(checkedExecutor);
@@ -93,7 +92,7 @@ public final class Conottle implements ClientTaskExecutor {
     }
 
     int countActiveExecutors() {
-        return activeExecutors.size();
+        return activeThrottlingExecutors.size();
     }
 
     private ThrottlingExecutor borrowFromPool() {
