@@ -64,8 +64,8 @@ final class ThrottlingExecutor {
      * To be called on completion of each submitted task
      *
      * @return the pending task count after decrementing the current value by one, accounting for the completion of one
-     *         task. Within the synchronized context, a zero return value unambiguously indicates no more in-flight task
-     *         pending execution on this executor.
+     *         task. Within the synchronized context, a return value of zero unambiguously indicates no more in-flight
+     *         task pending execution on this executor.
      */
     public int decrementAndGetPendingTaskCount() {
         if (pendingTaskCount <= 0) {
