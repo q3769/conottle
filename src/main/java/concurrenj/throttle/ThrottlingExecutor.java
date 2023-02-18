@@ -55,6 +55,8 @@ final class ThrottlingExecutor {
     private static <V> V call(Callable<V> task) {
         try {
             return task.call();
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new CompletionException(e);
         }
