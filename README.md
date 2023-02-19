@@ -7,7 +7,7 @@ of clients being serviced in parallel can also be throttled
 
 - **conottle** is short for **con**currency thr**ottle**.
 
-## User story
+## User Story
 
 As an API user, I want to execute tasks for any given client with a configurable maximum concurrency while the total
 number of clients being serviced in parallel can also be limited.
@@ -16,12 +16,12 @@ number of clients being serviced in parallel can also be limited.
 
 Java 8 or better
 
-## Get it...
+## Get It...
 
 Available
 at: [![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
 
-## Use it...
+## Use It...
 
 ### API
 
@@ -49,7 +49,7 @@ public interface ClientTaskExecutor {
 The interface uses `Future` as the return type, mainly to reduce conceptual weight of the API. The implementation
 actually returns `CompletableFuture`, and can be used directly if need be.
 
-### Sample usage
+### Sample Usage
 
 ```java
 
