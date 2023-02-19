@@ -43,7 +43,7 @@ import java.util.concurrent.*;
 @ToString
 public final class Conottle implements ClientTaskExecutor {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
-    private static final int DEFAULT_MAX_PARALLEL_CLIENT_COUNT = Integer.MAX_VALUE;
+    private static final int DEFAULT_MAX_CONCURRENT_CLIENT_TOTAL = Integer.MAX_VALUE;
     private static final int DEFAULT_MAX_SINGLE_CLIENT_CONCURRENCY = Runtime.getRuntime().availableProcessors();
     private static final Logger logger = Logger.instance();
     private final ConcurrentMap<Object, ThrottlingExecutor> activeThrottlingExecutors;
@@ -53,7 +53,7 @@ public final class Conottle implements ClientTaskExecutor {
         this.activeThrottlingExecutors = new ConcurrentHashMap<>();
         this.throttlingExecutorPool =
                 new GenericObjectPool<>(new PooledThrottlingExecutorFactory(builder.maxSingleClientConcurrency),
-                        getThrottlingExecutorPoolConfig(builder.maxParallelClientCount));
+                        getThrottlingExecutorPoolConfig(builder.maxConcurrentClientTotal));
         logger.atTrace().log("Success constructing: {}", this);
     }
 
@@ -120,7 +120,7 @@ public final class Conottle implements ClientTaskExecutor {
      */
     @NoArgsConstructor
     public static final class Builder {
-        private int maxParallelClientCount = DEFAULT_MAX_PARALLEL_CLIENT_COUNT;
+        private int maxConcurrentClientTotal = DEFAULT_MAX_CONCURRENT_CLIENT_TOTAL;
         private int maxSingleClientConcurrency = DEFAULT_MAX_SINGLE_CLIENT_CONCURRENCY;
 
         /**
@@ -135,9 +135,9 @@ public final class Conottle implements ClientTaskExecutor {
          * @param val max number of clients that can be concurrent serviced
          * @return the same builder instance
          */
-        public Builder maxParallelClientCount(int val) {
+        public Builder maxConcurrentClientTotal(int val) {
             if (val > 0) {
-                maxParallelClientCount = val;
+                maxConcurrentClientTotal = val;
             }
             return this;
         }

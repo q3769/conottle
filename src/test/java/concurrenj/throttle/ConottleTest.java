@@ -77,7 +77,7 @@ class ConottleTest {
 
         @Test
         void customizedMaxActiveClients() {
-            testExecute(new Conottle.Builder().maxParallelClientCount(42).build());
+            testExecute(new Conottle.Builder().maxConcurrentClientTotal(42).build());
         }
 
         @Test
@@ -91,7 +91,7 @@ class ConottleTest {
         @Test
         void customized() {
             Conottle conottle =
-                    new Conottle.Builder().maxSingleClientConcurrency(4).maxParallelClientCount(100).build();
+                    new Conottle.Builder().maxSingleClientConcurrency(4).maxConcurrentClientTotal(100).build();
             int clientCount = 2;
             int clientTaskCount = 10;
 

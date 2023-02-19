@@ -18,7 +18,8 @@ Java 8 or better
 
 ## Get it...
 
-Available at: [![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
+Available
+at: [![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
 
 ## Use it...
 
@@ -56,7 +57,7 @@ actually returns `CompletableFuture`, and can be used directly if need be.
 class submit {
     @Test
     void customized() {
-        Conottle conottle = new Conottle.Builder().maxSingleClientConcurrency(4).maxParallelClientCount(100).build();
+        Conottle conottle = new Conottle.Builder().maxSingleClientConcurrency(4).maxConcurrentClientTotal(100).build();
         int clientCount = 2;
         int clientTaskCount = 10;
 
@@ -89,18 +90,18 @@ Both builder parameters are optional:
 
 - `maxSingleClientConcurrency` is the maximum concurrency at which one single client's tasks can execute. If omitted or
   set to a non-positive integer, then the default `Runtime.getRuntime().availableProcessors()` takes effect.
-- `maxParallelClientCount` is the maximum number of clients that can be serviced in parallel. If omitted or set to a
+- `maxConcurrentClientTotal` is the maximum number of clients that can be serviced in parallel. If omitted or set to a
   non-positive integer, then the default `Integer.MAX_VALUE` takes effect.
 
-There is no limit on the total number of tasks or clients the API can support over time. The builder parameters only
-limit the execution concurrency at any given moment - before proceeding, excessive tasks or clients will have to wait
-for active ones to run for completion - i.e. the throttling effect.
+Over time, there is no limit on the total number of tasks or clients the API can support, regardless of the builder
+parameters. Conottle only limits concurrency at any given moment: Before proceeding, excessive tasks or clients will
+have to wait for active ones to run for completion - i.e. the throttling effect.
 
 Each individual client can have only one single dedicated executor at any given moment. The executor is backed by a
 worker thread pool with maximum size `maxSingleClientConcurrency`. Thus the client's execution concurrency can never go
 beyond, and will always be throttled at `maxSingleClientConcurrency`. The individual executors themselves are then
-pooled collectively, at a maximum pool size of `maxParallelClientCount`; this throttles the total number of clients that
+pooled collectively, at a maximum pool size of `maxConcurrentClientTotal`; this throttles the total number of clients that
 can be serviced in parallel.
 
 If both builder parameters are provided, the `Conottle` instance's maximum number of concurrent threads is
-the `maxSingleClientConcurrency` multiplied by the `maxParallelClientCount`.
+the `maxSingleClientConcurrency` multiplied by the `maxConcurrentClientTotal`.
