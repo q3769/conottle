@@ -93,9 +93,9 @@ Both builder parameters are optional:
 - `maxConcurrentClientTotal` is the maximum number of clients that can be serviced in parallel. If omitted or set to a
   non-positive integer, then the default `Integer.MAX_VALUE` takes effect.
 
-Over time, there is no limit on the total number of tasks or clients the API can support, regardless of the builder
-parameters. The API only limits concurrency at any given moment: Before proceeding, excessive tasks or clients will
-have to wait for active ones to run for completion - i.e. the throttling effect.
+Regardless of the builder parameters, there is no programmatic limit on the total number of tasks or clients supported
+by the API. The only limit is on runtime concurrency at any given moment: Before proceeding, excessive tasks or clients
+will have to wait for active ones to run for completion - i.e. the throttling effect.
 
 Each individual client can have only one single dedicated executor at any given moment. The executor is backed by a
 worker thread pool with maximum size `maxSingleClientConcurrency`. Thus the client's execution concurrency can never go
