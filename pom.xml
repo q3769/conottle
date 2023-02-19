@@ -30,7 +30,7 @@
 
     <groupId>io.github.q3769</groupId>
     <artifactId>conottle</artifactId>
-    <version>8.0.0</version>
+    <version>9.0.0</version>
     <packaging>jar</packaging>
     <name>conottle</name>
     <description>A Java concurrent API to throttle the maximum concurrency to process tasks for any given client while

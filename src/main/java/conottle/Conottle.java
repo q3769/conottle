@@ -43,8 +43,8 @@ import java.util.concurrent.*;
 @ToString
 public final class Conottle implements ClientTaskExecutor {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
-    private static final int DEFAULT_MAX_CONCURRENT_CLIENT_TOTAL = Integer.MAX_VALUE;
-    private static final int DEFAULT_MAX_SINGLE_CLIENT_CONCURRENCY = Runtime.getRuntime().availableProcessors();
+    private static final int DEFAULT_CONCURRENT_CLIENT_MAX_TOTAL = Integer.MAX_VALUE;
+    private static final int DEFAULT_SINGLE_CLIENT_MAX_CONCURRENCY = Runtime.getRuntime().availableProcessors();
     private static final Logger logger = Logger.instance();
     private final ConcurrentMap<Object, ThrottlingExecutor> activeThrottlingExecutors;
     private final ObjectPool<ThrottlingExecutor> throttlingExecutorPool;
@@ -52,8 +52,8 @@ public final class Conottle implements ClientTaskExecutor {
     private Conottle(@NonNull Builder builder) {
         this.activeThrottlingExecutors = new ConcurrentHashMap<>();
         this.throttlingExecutorPool =
-                new GenericObjectPool<>(new PooledThrottlingExecutorFactory(builder.maxSingleClientConcurrency),
-                        getThrottlingExecutorPoolConfig(builder.maxConcurrentClientTotal));
+                new GenericObjectPool<>(new PooledThrottlingExecutorFactory(builder.singleClientMaxConcurrency),
+                        getThrottlingExecutorPoolConfig(builder.concurrentClientMaxTotal));
         logger.atTrace().log("Success constructing: {}", this);
     }
 
@@ -120,8 +120,8 @@ public final class Conottle implements ClientTaskExecutor {
      */
     @NoArgsConstructor
     public static final class Builder {
-        private int maxConcurrentClientTotal = DEFAULT_MAX_CONCURRENT_CLIENT_TOTAL;
-        private int maxSingleClientConcurrency = DEFAULT_MAX_SINGLE_CLIENT_CONCURRENCY;
+        private int concurrentClientMaxTotal = DEFAULT_CONCURRENT_CLIENT_MAX_TOTAL;
+        private int singleClientMaxConcurrency = DEFAULT_SINGLE_CLIENT_MAX_CONCURRENCY;
 
         /**
          * @return the concurrent throttler instance
@@ -135,9 +135,9 @@ public final class Conottle implements ClientTaskExecutor {
          * @param val max number of clients that can be concurrent serviced
          * @return the same builder instance
          */
-        public Builder maxConcurrentClientTotal(int val) {
+        public Builder concurrentClientMaxTotal(int val) {
             if (val > 0) {
-                maxConcurrentClientTotal = val;
+                concurrentClientMaxTotal = val;
             }
             return this;
         }
@@ -146,9 +146,9 @@ public final class Conottle implements ClientTaskExecutor {
          * @param val max number of tasks that can be concurrently executed per each client
          * @return the name builder instance
          */
-        public Builder maxSingleClientConcurrency(int val) {
+        public Builder singleClientMaxConcurrency(int val) {
             if (val > 0) {
-                maxSingleClientConcurrency = val;
+                singleClientMaxConcurrency = val;
             }
             return this;
         }
