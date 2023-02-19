@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package concurrenj.throttle;
+package conottle;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;

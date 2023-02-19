@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package concurrenj.throttle;
+package conottle;
 
 import lombok.NonNull;
 import org.apache.commons.pool2.BasePooledObjectFactory;

@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package concurrenj.throttle;
+package conottle;
 
 import elf4j.Logger;
 import org.junit.jupiter.api.Nested;
