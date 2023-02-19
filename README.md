@@ -94,7 +94,7 @@ Both builder parameters are optional:
   non-positive integer, then the default `Integer.MAX_VALUE` takes effect.
 
 Over time, there is no limit on the total number of tasks or clients the API can support, regardless of the builder
-parameters. Conottle only limits concurrency at any given moment: Before proceeding, excessive tasks or clients will
+parameters. The API only limits concurrency at any given moment: Before proceeding, excessive tasks or clients will
 have to wait for active ones to run for completion - i.e. the throttling effect.
 
 Each individual client can have only one single dedicated executor at any given moment. The executor is backed by a
