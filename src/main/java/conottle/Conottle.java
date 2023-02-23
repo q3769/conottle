@@ -43,14 +43,16 @@ import java.util.concurrent.*;
 @ToString
 public final class Conottle implements ClientTaskExecutor {
     private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
-    private static final int DEFAULT_CONCURRENT_CLIENT_MAX_TOTAL = Integer.MAX_VALUE;
-    private static final int DEFAULT_SINGLE_CLIENT_MAX_CONCURRENCY = Runtime.getRuntime().availableProcessors();
+    private static final int DEFAULT_CONCURRENT_CLIENT_MAX_TOTAL =
+            Math.max(16, Runtime.getRuntime().availableProcessors());
+    private static final int DEFAULT_SINGLE_CLIENT_MAX_CONCURRENCY =
+            Math.max(16, Runtime.getRuntime().availableProcessors());
     private static final Logger logger = Logger.instance();
     private final ConcurrentMap<Object, ThrottlingExecutor> activeThrottlingExecutors;
     private final ObjectPool<ThrottlingExecutor> throttlingExecutorPool;
 
     private Conottle(@NonNull Builder builder) {
-        this.activeThrottlingExecutors = new ConcurrentHashMap<>();
+        this.activeThrottlingExecutors = new ConcurrentHashMap<>(builder.concurrentClientMaxTotal);
         this.throttlingExecutorPool =
                 new GenericObjectPool<>(new PooledThrottlingExecutorFactory(builder.singleClientMaxConcurrency),
                         getThrottlingExecutorPoolConfig(builder.concurrentClientMaxTotal));
