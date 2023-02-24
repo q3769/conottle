@@ -1,29 +1,25 @@
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=CONOTTLE)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
-
-# conottle
-
 A Java concurrent API to throttle the maximum concurrency to process tasks for any given client while the total number
 of clients being serviced in parallel can also be throttled
 
 - **conottle** is short for **con**currency thr**ottle**.
 
-## User Story
+# User Story
 
 As an API user, I want to execute tasks for any given client with a configurable maximum concurrency while the total
 number of clients being serviced in parallel can also be limited.
 
-## Prerequisite
+# Prerequisite
 
 Java 8 or better
 
-## Get It...
+# Get It...
 
 Available
-at: [![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
+at [![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
 
-## Use It...
+# Use It...
 
-### API
+## API
 
 ```java
 public interface ClientTaskExecutor {
@@ -49,7 +45,7 @@ public interface ClientTaskExecutor {
 The interface uses `Future` as the return type, mainly to reduce conceptual weight of the API. The implementation
 actually returns `CompletableFuture`, and can be used directly if need be.
 
-### Sample Usage
+## Sample Usage
 
 ```java
 
