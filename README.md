@@ -1,3 +1,5 @@
+[![](https://img.shields.io/static/v1?label=github&message=repo&color=blue)](https://github.com/q3769/conottle)
+
 A Java concurrent API to throttle the maximum concurrency to process tasks for any given client while the total number
 of clients being serviced in parallel can also be throttled
 
@@ -14,8 +16,7 @@ Java 8 or better
 
 # Get It...
 
-Available
-at [![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
 
 # Use It...
 
