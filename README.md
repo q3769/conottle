@@ -1,43 +1,51 @@
-[![](https://img.shields.io/static/v1?label=github&message=repo&color=blue)](https://github.com/q3769/conottle)
+# conottle
 
 A Java concurrent API to throttle the maximum concurrency to process tasks for any given client while the total number
 of clients being serviced in parallel can also be throttled
 
 - **conottle** is short for **con**currency thr**ottle**.
 
-# User Story
+## User Story
 
 As an API user, I want to execute tasks for any given client with a configurable maximum concurrency while the total
 number of clients being serviced in parallel can also be limited.
 
-# Prerequisite
+## Prerequisite
 
 Java 8 or better
 
-# Get It...
+## Get It...
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.q3769/conottle.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22io.github.q3769%22%20AND%20a:%22conottle%22)
 
-# Use It...
+## Use It...
 
-## API
+### API
 
 ```java
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+
 public interface ClientTaskExecutor {
     /**
-     * @param command  {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId}
-     *                 are run in parallel, albeit throttled at a maximum concurrency.
-     * @param clientId A key representing a client whose tasks are throttled while running in parallel
-     * @return {@link java.util.concurrent.Future} holding the run status of the {@code command}
+     * @param command
+     *         {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId} are run
+     *         in parallel, albeit throttled at a maximum concurrency.
+     * @param clientId
+     *         A key representing a client whose tasks are throttled while running in parallel
+     * @return {@link Future} holding the run status of the {@code command}
      */
     Future<Void> execute(Runnable command, Object clientId);
 
     /**
-     * @param task     {@link java.util.concurrent.Callable} task to run asynchronously. All such tasks under the same {@code clientId} are
-     *                 run in parallel, albeit throttled at a maximum concurrency.
-     * @param clientId A key representing a client whose tasks are throttled while running in parallel
-     * @param <V>      Type of the task result
-     * @return {@link java.util.concurrent.Future} representing the result of the {@code task}
+     * @param task
+     *         {@link Callable} task to run asynchronously. All such tasks under the same {@code clientId} are run in
+     *         parallel, albeit throttled at a maximum concurrency.
+     * @param clientId
+     *         A key representing a client whose tasks are throttled while running in parallel
+     * @param <V>
+     *         Type of the task result
+     * @return {@link Future} representing the result of the {@code task}
      */
     <V> Future<V> submit(Callable<V> task, Object clientId);
 }
@@ -46,11 +54,9 @@ public interface ClientTaskExecutor {
 The interface uses `Future` as the return type, mainly to reduce conceptual weight of the API. The implementation
 actually returns `CompletableFuture`, and can be used directly if need be.
 
-## Sample Usage
+### Sample Usage
 
 ```java
-
-@Nested
 class submit {
     @Test
     void customized() {
@@ -97,7 +103,7 @@ by the API. The only limit is on runtime concurrency at any given moment: Before
 will have to wait for active ones to run for completion - i.e. the throttling effect.
 
 Each individual client can have only one single dedicated executor at any given moment. The executor is backed by a
-worker thread pool with maximum size `singleClientMaxConcurrency`. Thus the client's execution concurrency can never go
+worker thread pool with maximum size `singleClientMaxConcurrency`. Thus, the client's execution concurrency can never go
 beyond, and will always be throttled at `singleClientMaxConcurrency`. The individual executors themselves are then
 pooled collectively, at a maximum pool size of `concurrentClientMaxTotal`; this throttles the total number of clients
 that can be serviced in parallel.
