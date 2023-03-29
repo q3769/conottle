@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ConottleTest {
     private static final Duration MIN_TASK_DURATION = Duration.ofMillis(100);
-    private static final Logger info = Logger.instance(ConottleTest.class).atInfo();
+    private static final Logger info = Logger.instance().atInfo();
 
     private static void testExecute(Conottle conottle) {
         int clientCount = 2;

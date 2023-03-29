@@ -41,8 +41,8 @@ final class PooledThrottlingExecutorFactory extends BasePooledObjectFactory<Thro
     private final int executorThreadPoolCapacity;
 
     /**
-     * @param executorThreadPoolCapacity max concurrent threads of the {@link ThrottlingExecutor} instance produced by
-     *                                   this factory
+     * @param executorThreadPoolCapacity
+     *         max concurrent threads of the {@link ThrottlingExecutor} instance produced by this factory
      */
     public PooledThrottlingExecutorFactory(int executorThreadPoolCapacity) {
         this.executorThreadPoolCapacity = executorThreadPoolCapacity;

@@ -34,7 +34,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Not thread safe: Any and all public methods always to be used in a synchronized context while multithreading.
+ * Not thread safe: Any and all public methods always should be externally synchronized while multithreading.
  */
 @NotThreadSafe
 @ToString
@@ -46,7 +46,8 @@ final class ThrottlingExecutor {
     private int pendingTaskCount;
 
     /**
-     * @param throttlingExecutorService the backing thread pool facilitating the async executions of this executor.
+     * @param throttlingExecutorService
+     *         the backing thread pool facilitating the async executions of this executor.
      */
     public ThrottlingExecutor(ExecutorService throttlingExecutorService) {
         this.throttlingExecutorService = throttlingExecutorService;

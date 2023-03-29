@@ -36,7 +36,7 @@ import static org.awaitility.Awaitility.await;
 @ToString
 @Getter
 public class Task implements Callable<Task>, Runnable {
-    private static final Logger trace = Logger.instance(Task.class).atTrace();
+    private static final Logger trace = Logger.instance().atTrace();
     private final Duration minDuration;
     private final Duration pollInterval;
     private final Object taskId;

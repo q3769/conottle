@@ -134,7 +134,8 @@ public final class Conottle implements ClientTaskExecutor {
         }
 
         /**
-         * @param val max number of clients that can be concurrent serviced
+         * @param val
+         *         max number of clients that can be concurrent serviced
          * @return the same builder instance
          */
         public Builder concurrentClientMaxTotal(int val) {
@@ -145,7 +146,8 @@ public final class Conottle implements ClientTaskExecutor {
         }
 
         /**
-         * @param val max number of tasks that can be concurrently executed per each client
+         * @param val
+         *         max number of tasks that can be concurrently executed per each client
          * @return the name builder instance
          */
         public Builder singleClientMaxConcurrency(int val) {
