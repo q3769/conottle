@@ -30,7 +30,7 @@
 
     <groupId>io.github.q3769</groupId>
     <artifactId>conottle</artifactId>
-    <version>10.0.2</version>
+    <version>10.0.3</version>
     <packaging>jar</packaging>
     <name>conottle</name>
     <description>A Java concurrent API to throttle the maximum concurrency to process tasks for any given client while
@@ -79,7 +79,7 @@
         <dependency>
             <groupId>io.github.elf4j</groupId>
             <artifactId>elf4j</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -90,7 +90,7 @@
         <dependency>
             <groupId>io.github.elf4j</groupId>
             <artifactId>elf4j-provider</artifactId>
-            <version>7.1.2</version>
+            <version>8.0.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
