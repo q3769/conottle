@@ -27,10 +27,11 @@ Install as a compile-scope dependency in Maven or other build tools alike.
 ### API
 
 ```java
+import java.io.Closeable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
-public interface ClientTaskExecutor {
+public interface ClientTaskExecutor extends Closeable {
     /**
      * @param command
      *         {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId} are run
@@ -64,31 +65,35 @@ actually returns `CompletableFuture`, and can be used directly if need be.
 class submit {
     @Test
     void customized() {
-        Conottle conottle = new Conottle.Builder().singleClientMaxConcurrency(4).concurrentClientMaxTotal(100).build();
         int clientCount = 2;
         int clientTaskCount = 10;
-
-        List<Future<Task>> futures = new ArrayList<>(); // class Task implements Callable<Task>
-        for (int c = 0; c < clientCount; c++) {
-            String clientId = "clientId-" + (c + 1);
-            for (int t = 0; t < clientTaskCount; t++) {
-                futures.add(conottle.submit(new Task(clientId + "-task-" + t, MIN_TASK_DURATION), clientId));
+        try (Conottle conottle = new Conottle.Builder().singleClientMaxConcurrency(4)
+                .concurrentClientMaxTotal(100)
+                .build()) {
+            List<Future<Task>> futures = new ArrayList<>(); // class Task implements Callable<Task>
+            for (int c = 0; c < clientCount; c++) {
+                String clientId = "clientId-" + (c + 1);
+                for (int t = 0; t < clientTaskCount; t++) {
+                    futures.add(conottle.submit(new Task(clientId + "-task-" + t, MIN_TASK_DURATION), clientId));
+                }
             }
-        }
 
-        assertEquals(clientCount, conottle.countActiveExecutors(), "should be 1:1 between a client and its executor");
-        int taskTotal = futures.size();
-        assertEquals(clientTaskCount * clientCount, taskTotal);
-        info.log("none of {} tasks will be done immediately", taskTotal);
-        for (Future<Task> future : futures) {
-            assertFalse(future.isDone());
+            assertEquals(clientCount,
+                    conottle.countActiveExecutors(),
+                    "should be 1:1 between a client and its executor");
+            int taskTotal = futures.size();
+            assertEquals(clientTaskCount * clientCount, taskTotal);
+            info.log("none of the {} tasks will be done immediately", taskTotal);
+            for (Future<Task> future : futures) {
+                assertFalse(future.isDone());
+            }
+            info.log("all of the {} tasks will be done eventually", taskTotal);
+            for (Future<Task> future : futures) {
+                await().until(future::isDone);
+            }
+            info.log("no active executor lingers when all tasks complete");
+            await().until(() -> conottle.countActiveExecutors() == 0);
         }
-        info.log("all of {} tasks will be done eventually", taskTotal);
-        for (Future<Task> future : futures) {
-            await().until(future::isDone);
-        }
-        info.log("no active executor lingers when all tasks complete");
-        await().until(() -> conottle.countActiveExecutors() == 0);
     }
 }
 ```
