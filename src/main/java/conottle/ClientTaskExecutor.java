@@ -24,6 +24,7 @@
 
 package conottle;
 
+import java.io.Closeable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 
@@ -31,7 +32,7 @@ import java.util.concurrent.Future;
  * Implementation should provide throttle capability on concurrent tasks of each client, and optionally on total number
  * of clients serviced in parallel.
  */
-public interface ClientTaskExecutor extends AutoCloseable {
+public interface ClientTaskExecutor extends Closeable {
     /**
      * @param command
      *         {@link Runnable} command to run asynchronously. All such commands under the same {@code clientId} are run
