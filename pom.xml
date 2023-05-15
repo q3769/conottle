@@ -90,7 +90,7 @@
         <dependency>
             <groupId>io.github.elf4j</groupId>
             <artifactId>elf4j-provider</artifactId>
-            <version>8.0.2</version>
+            <version>9.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

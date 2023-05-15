@@ -54,12 +54,12 @@ class SampleUsageTest {
             for (int c = 0; c < clientCount; c++) {
                 String clientId = "clientId-" + (c + 1);
                 for (int t = 0; t < clientTaskCount; t++) {
-                    futures.add(conottle.submit(new Task(clientId + "-task-" + t, MIN_TASK_DURATION), clientId));
+                    futures.add(this.conottle.submit(new Task(clientId + "-task-" + t, MIN_TASK_DURATION), clientId));
                 }
             }
 
             assertEquals(clientCount,
-                    conottle.countActiveExecutors(),
+                    this.conottle.countActiveExecutors(),
                     "should be 1:1 between a client and its executor");
             int taskTotal = futures.size();
             assertEquals(clientTaskCount * clientCount, taskTotal);
@@ -72,12 +72,12 @@ class SampleUsageTest {
                 await().until(future::isDone);
             }
             info.log("no active executor lingers when all tasks complete");
-            await().until(() -> conottle.countActiveExecutors() == 0);
+            await().until(() -> this.conottle.countActiveExecutors() == 0);
         }
 
         @AfterEach
         void close() {
-            conottle.close();
+            this.conottle.close();
         }
     }
 }
