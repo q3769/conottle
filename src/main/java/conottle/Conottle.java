@@ -93,6 +93,11 @@ public final class Conottle implements ClientTaskExecutor {
         return taskCompletableFuture.thenApply(r -> r);
     }
 
+    @Override
+    public void close() {
+        this.throttlingExecutorPool.close();
+    }
+
     int countActiveExecutors() {
         return activeThrottlingExecutors.size();
     }
