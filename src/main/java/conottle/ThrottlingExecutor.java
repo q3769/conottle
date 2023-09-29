@@ -81,7 +81,7 @@ final class ThrottlingExecutor {
         return CompletableFuture.supplyAsync(() -> call(task), throttlingExecutorService);
     }
 
-    ExecutorService getThrottlingExecutorService() {
-        return throttlingExecutorService;
+    void shutdown() {
+        throttlingExecutorService.shutdown();
     }
 }
