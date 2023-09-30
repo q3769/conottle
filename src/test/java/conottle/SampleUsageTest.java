@@ -44,7 +44,7 @@ class SampleUsageTest {
 
     @Nested
     class submit {
-        Conottle conottle = new Conottle.Builder().concurrentClientMaxTotal(100).singleClientMaxConcurrency(4).build();
+        Conottle conottle = new Conottle.Builder().maxTotalClientsInParallel(100).maxConcurrencyPerClient(4).build();
 
         @Test
         void customized() {

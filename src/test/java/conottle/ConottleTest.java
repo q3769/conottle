@@ -81,12 +81,12 @@ class ConottleTest {
 
         @Test
         void customizedMaxActiveClients() {
-            testExecute(new Conottle.Builder().concurrentClientMaxTotal(42).build());
+            testExecute(new Conottle.Builder().maxTotalClientsInParallel(42).build());
         }
 
         @Test
         void customizedThrottleLimit() {
-            testExecute(new Conottle.Builder().singleClientMaxConcurrency(3).build());
+            testExecute(new Conottle.Builder().maxConcurrencyPerClient(3).build());
         }
     }
 
@@ -96,8 +96,8 @@ class ConottleTest {
         void customized() {
             int clientCount = 2;
             int clientTaskCount = 10;
-            try (Conottle conottle = new Conottle.Builder().singleClientMaxConcurrency(4)
-                    .concurrentClientMaxTotal(100)
+            try (Conottle conottle = new Conottle.Builder().maxConcurrencyPerClient(4)
+                    .maxTotalClientsInParallel(100)
                     .build()) {
                 List<Future<Task>> futures = new ArrayList<>(); // class Task implements Callable<Task>
                 for (int c = 0; c < clientCount; c++) {
