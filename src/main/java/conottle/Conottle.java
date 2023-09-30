@@ -29,6 +29,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.ToString;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.concurrent.*;
@@ -39,21 +42,28 @@ import java.util.concurrent.*;
 @ThreadSafe
 @ToString
 public final class Conottle implements ClientTaskExecutor, AutoCloseable {
-    private static final ExecutorService ADMIN_EXECUTOR_SERVICE = Executors.newCachedThreadPool();
     private static final int DEFAULT_CONCURRENT_CLIENT_MAX_TOTAL =
             Math.max(16, Runtime.getRuntime().availableProcessors());
     private static final int DEFAULT_SINGLE_CLIENT_MAX_CONCURRENCY =
             Math.max(16, Runtime.getRuntime().availableProcessors());
     private static final Logger logger = Logger.instance();
-    private final ConcurrentMap<Object, ThrottlingExecutor> activeThrottlingExecutors;
-    private final Semaphore clientTotalQuota;
-    private final int singleClientConcurrency;
+    private final ExecutorService adminExecutorService = Executors.newSingleThreadExecutor();
+    private final ConcurrentMap<Object, TaskCountingExecutor> activeThrottlingExecutors;
+    private final ObjectPool<TaskCountingExecutor> throttlingExecutorPool;
 
     private Conottle(@NonNull Builder builder) {
         this.activeThrottlingExecutors = new ConcurrentHashMap<>(builder.concurrentClientMaxTotal);
-        singleClientConcurrency = builder.singleClientMaxConcurrency;
-        clientTotalQuota = new Semaphore(builder.concurrentClientMaxTotal);
+        this.throttlingExecutorPool =
+                new GenericObjectPool<>(new PooledExecutorFactory(builder.singleClientMaxConcurrency),
+                        getThrottlingExecutorPoolConfig(builder.concurrentClientMaxTotal));
         logger.atTrace().log("Success constructing: {}", this);
+    }
+
+    @NonNull
+    private static GenericObjectPoolConfig<TaskCountingExecutor> getThrottlingExecutorPoolConfig(int poolSizeMaxTotal) {
+        GenericObjectPoolConfig<TaskCountingExecutor> throttlingExecutorPoolConfig = new GenericObjectPoolConfig<>();
+        throttlingExecutorPoolConfig.setMaxTotal(poolSizeMaxTotal);
+        return throttlingExecutorPoolConfig;
     }
 
     @Override
@@ -67,7 +77,7 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
     public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         CompletableFutureHolder<V> taskCompletableFutureHolder = new CompletableFutureHolder<>();
         activeThrottlingExecutors.compute(clientId, (k, presentExecutor) -> {
-            ThrottlingExecutor executor = (presentExecutor == null) ? acquireClientExecutor() : presentExecutor;
+            TaskCountingExecutor executor = (presentExecutor == null) ? borrowFromPool() : presentExecutor;
             taskCompletableFutureHolder.setCompletableFuture(executor.incrementPendingTaskCountAndSubmit(task));
             return executor;
         });
@@ -76,31 +86,40 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
         taskCompletableFuture.whenCompleteAsync((r, e) -> activeThrottlingExecutors.computeIfPresent(clientId,
                 (k, checkedExecutor) -> {
                     if (checkedExecutor.decrementAndGetPendingTaskCount() == 0) {
-                        clientTotalQuota.release();
-                        checkedExecutor.shutdown();
+                        returnToPool(checkedExecutor);
                         return null;
                     }
                     return checkedExecutor;
-                }), ADMIN_EXECUTOR_SERVICE);
+                }), adminExecutorService);
         return copy;
     }
 
     @Override
     public void close() {
-        activeThrottlingExecutors.values().parallelStream().forEach(ThrottlingExecutor::shutdown);
+        this.throttlingExecutorPool.close();
     }
 
     int countActiveExecutors() {
         return activeThrottlingExecutors.size();
     }
 
-    private ThrottlingExecutor acquireClientExecutor() {
+    private TaskCountingExecutor borrowFromPool() {
         try {
-            clientTotalQuota.acquire();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            return throttlingExecutorPool.borrowObject();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to borrow executor from pool " + throttlingExecutorPool, e);
         }
-        return new ThrottlingExecutor(Executors.newFixedThreadPool(singleClientConcurrency));
+    }
+
+    private void returnToPool(TaskCountingExecutor throttlingExecutor) {
+        adminExecutorService.submit(() -> {
+            try {
+                throttlingExecutorPool.returnObject(throttlingExecutor);
+            } catch (Exception e) {
+                logger.atWarn()
+                        .log(e, "Ignoring failure of returning {} to {}", throttlingExecutor, throttlingExecutorPool);
+            }
+        });
     }
 
     /**

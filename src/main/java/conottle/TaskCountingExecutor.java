@@ -34,11 +34,11 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 
 /**
- * Not thread safe: Any and all public methods always should be externally synchronized while multithreading.
+ * Not thread safe: Any and all non-private methods always should be externally synchronized while multithreading.
  */
 @NotThreadSafe
 @ToString
-final class ThrottlingExecutor {
+final class TaskCountingExecutor {
     /**
      * Thread pool that throttles the max concurrency of this executor
      */
@@ -49,7 +49,7 @@ final class ThrottlingExecutor {
      * @param throttlingExecutorService
      *         the backing thread pool facilitating the async executions of this executor.
      */
-    public ThrottlingExecutor(ExecutorService throttlingExecutorService) {
+    TaskCountingExecutor(ExecutorService throttlingExecutorService) {
         this.throttlingExecutorService = throttlingExecutorService;
     }
 
@@ -68,15 +68,14 @@ final class ThrottlingExecutor {
      *         task. Within the synchronized context, a return value of zero unambiguously indicates no more in-flight
      *         task pending execution on this executor.
      */
-    public int decrementAndGetPendingTaskCount() {
+    int decrementAndGetPendingTaskCount() {
         if (pendingTaskCount <= 0) {
             throw new IllegalStateException("Cannot further decrement from pending task count: " + pendingTaskCount);
         }
         return --pendingTaskCount;
     }
 
-    @NonNull
-    public <V> CompletableFuture<V> incrementPendingTaskCountAndSubmit(Callable<V> task) {
+    @NonNull <V> CompletableFuture<V> incrementPendingTaskCountAndSubmit(Callable<V> task) {
         pendingTaskCount++;
         return CompletableFuture.supplyAsync(() -> call(task), throttlingExecutorService);
     }

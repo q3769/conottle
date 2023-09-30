@@ -118,8 +118,9 @@ will have to wait for active ones to run for completion - i.e. the throttling ef
 
 Each individual client can have only one single dedicated executor at any given moment. The executor is backed by a
 worker thread pool with maximum size `singleClientMaxConcurrency`. Thus, the client's execution concurrency can never go
-beyond, and will always be throttled at `singleClientMaxConcurrency`. The total count of clients that can be serviced in
-parallel is then throttled by a semaphore.
+beyond, and will always be throttled at `singleClientMaxConcurrency`. The individual executors themselves are then
+pooled collectively, at a maximum pool size of `concurrentClientMaxTotal`; this throttles the total number of clients
+that can be serviced in parallel.
 
 If both builder parameters are provided, the `Conottle` instance's maximum number of concurrent threads is
 the `singleClientMaxConcurrency` multiplied by the `concurrentClientMaxTotal`.
