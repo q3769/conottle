@@ -30,35 +30,29 @@ import lombok.ToString;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import static coco4j.CocoUtils.supplyByUnchecked;
 
 /**
  * Not thread safe: Any and all non-private methods always should be externally synchronized while multithreading.
  */
 @NotThreadSafe
 @ToString
-final class TaskCountingExecutor {
+final class TaskCountingExecutorService implements TaskThrottlingExecutorService {
     /**
      * Thread pool that throttles the max concurrency of this executor
      */
-    private final ExecutorService throttlingExecutorService;
+    private final ExecutorService taskThreadPool;
     private int pendingTaskCount;
 
     /**
-     * @param throttlingExecutorService
-     *         the backing thread pool facilitating the async executions of this executor.
+     * @param taskThreadPoolCapacity
+     *         the capacity of backing thread pool facilitating the async executions of this executor.
      */
-    TaskCountingExecutor(ExecutorService throttlingExecutorService) {
-        this.throttlingExecutorService = throttlingExecutorService;
-    }
-
-    private static <V> V call(Callable<V> task) {
-        try {
-            return task.call();
-        } catch (Exception e) {
-            throw new CompletionException(e);
-        }
+    TaskCountingExecutorService(int taskThreadPoolCapacity) {
+        this.taskThreadPool = Executors.newFixedThreadPool(taskThreadPoolCapacity);
     }
 
     /**
@@ -68,19 +62,23 @@ final class TaskCountingExecutor {
      *         task. Within the synchronized context, a return value of zero unambiguously indicates no more in-flight
      *         task pending execution on this executor.
      */
-    int decrementAndGetPendingTaskCount() {
+    @Override
+    public boolean noPendingWorkAfterTaskComplete() {
         if (pendingTaskCount <= 0) {
             throw new IllegalStateException("Cannot further decrement from pending task count: " + pendingTaskCount);
         }
-        return --pendingTaskCount;
+        return --pendingTaskCount == 0;
     }
 
-    @NonNull <V> CompletableFuture<V> incrementPendingTaskCountAndSubmit(Callable<V> task) {
+    @Override
+    @NonNull
+    public <V> CompletableFuture<V> submit(Callable<V> task) {
         pendingTaskCount++;
-        return CompletableFuture.supplyAsync(() -> call(task), throttlingExecutorService);
+        return CompletableFuture.supplyAsync(supplyByUnchecked(task), taskThreadPool);
     }
 
-    void shutdown() {
-        throttlingExecutorService.shutdown();
+    @Override
+    public void shutdown() {
+        taskThreadPool.shutdown();
     }
 }

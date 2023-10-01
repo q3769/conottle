@@ -30,39 +30,43 @@ import org.apache.commons.pool2.DestroyMode;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 
-import java.util.concurrent.Executors;
-
 /**
- * Creates pooled {@link TaskCountingExecutor} instances that provide throttled async client task executions. Each
- * {@code TaskCountingExecutor} instance throttles its client task concurrency at the max capacity of the executor's
- * backing thread pool.
+ * Creates pooled {@link TaskCountingExecutorService} instances that provide throttled async client task executions.
+ * Each {@code TaskCountingExecutorService} instance throttles its client task concurrency at the max capacity of the
+ * executor's backing thread pool.
  */
-final class PooledExecutorFactory extends BasePooledObjectFactory<TaskCountingExecutor> {
-    private final int executorThreadPoolCapacity;
+final class PooledExecutorFactory extends BasePooledObjectFactory<TaskThrottlingExecutorService> {
+    private final boolean virtualThreading;
+
+    private final int maxExecutorConcurrency;
 
     /**
-     * @param executorThreadPoolCapacity
-     *         max concurrent threads of the {@link TaskCountingExecutor} instance produced by this factory
+     * @param virtualThreading
+     *         if true, then use virtual threads to facilitate async operations.
+     * @param maxExecutorConcurrency
+     *         max concurrent threads of the {@link TaskCountingExecutorService} instance produced by this factory
      */
-    PooledExecutorFactory(int executorThreadPoolCapacity) {
-        this.executorThreadPoolCapacity = executorThreadPoolCapacity;
+    PooledExecutorFactory(boolean virtualThreading, int maxExecutorConcurrency) {
+        this.virtualThreading = virtualThreading;
+        this.maxExecutorConcurrency = maxExecutorConcurrency;
     }
 
     @Override
     @NonNull
-    public TaskCountingExecutor create() {
-        return new TaskCountingExecutor(Executors.newFixedThreadPool(executorThreadPoolCapacity));
+    public TaskThrottlingExecutorService create() {
+        return virtualThreading ? new TaskLimitingExecutorService(maxExecutorConcurrency) :
+                new TaskCountingExecutorService(maxExecutorConcurrency);
     }
 
     @Override
     @NonNull
-    public PooledObject<TaskCountingExecutor> wrap(TaskCountingExecutor throttlingExecutor) {
+    public PooledObject<TaskThrottlingExecutorService> wrap(TaskThrottlingExecutorService throttlingExecutor) {
         return new DefaultPooledObject<>(throttlingExecutor);
     }
 
     @Override
-    public void destroyObject(PooledObject<TaskCountingExecutor> pooledThrottlingExecutor, DestroyMode destroyMode)
-            throws Exception {
+    public void destroyObject(PooledObject<TaskThrottlingExecutorService> pooledThrottlingExecutor,
+            DestroyMode destroyMode) throws Exception {
         try {
             super.destroyObject(pooledThrottlingExecutor, destroyMode);
         } finally {
