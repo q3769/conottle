@@ -53,7 +53,7 @@ public interface ClientTaskExecutor {
 ```
 
 The interface uses `Future` as the return type, mainly to reduce conceptual weight of the API. The implementation
-actually returns `CompletableFuture`, and can be used directly if need be.
+actually returns `CompletableFuture`, and can be used/cast as such if need be.
 
 ### Sample usage
 
