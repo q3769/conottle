@@ -88,11 +88,6 @@ class ConottleTest {
         void customizedThrottleLimit() {
             testExecute(new Conottle.Builder().maxConcurrencyPerClient(3).build());
         }
-
-        @Test
-        void virtualThreading() {
-            testExecute(new Conottle.Builder().virtualThreading(true).build());
-        }
     }
 
     @Nested

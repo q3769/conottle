@@ -29,7 +29,16 @@ import lombok.NonNull;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 
-public interface TaskThrottlingExecutorService {
+/**
+ * Throttles total number of tasks being concurrently executed
+ */
+interface TaskThrottlingExecutorService {
+    /**
+     * Intended to be called after a task is completed by this service.
+     *
+     * @return true if this executor has no more pending tasks after the task whose completion triggered this method
+     *         invocation
+     */
     boolean noPendingWorkAfterTaskComplete();
 
     @NonNull <V> CompletableFuture<V> submit(Callable<V> task);

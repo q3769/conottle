@@ -36,26 +36,21 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
  * executor's backing thread pool.
  */
 final class PooledExecutorFactory extends BasePooledObjectFactory<TaskThrottlingExecutorService> {
-    private final boolean virtualThreading;
 
     private final int maxExecutorConcurrency;
 
     /**
-     * @param virtualThreading
-     *         if true, then use virtual threads to facilitate async operations.
      * @param maxExecutorConcurrency
      *         max concurrent threads of the {@link TaskCountingExecutorService} instance produced by this factory
      */
-    PooledExecutorFactory(boolean virtualThreading, int maxExecutorConcurrency) {
-        this.virtualThreading = virtualThreading;
+    PooledExecutorFactory(int maxExecutorConcurrency) {
         this.maxExecutorConcurrency = maxExecutorConcurrency;
     }
 
     @Override
     @NonNull
     public TaskThrottlingExecutorService create() {
-        return virtualThreading ? new TaskLimitingExecutorService(maxExecutorConcurrency) :
-                new TaskCountingExecutorService(maxExecutorConcurrency);
+        return new TaskCountingExecutorService(maxExecutorConcurrency);
     }
 
     @Override
