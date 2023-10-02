@@ -83,7 +83,7 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
             return executor;
         });
         CompletableFuture<V> taskCompletableFuture = taskCompletableFutureHolder.getCompletableFuture();
-        CompletableFuture<V> copy = taskCompletableFuture.thenApply(r -> r);
+        CompletableFuture<V> copy = taskCompletableFuture.copy();
         taskCompletableFuture.whenCompleteAsync((r, e) -> activeThrottlingExecutors.computeIfPresent(clientId,
                 (k, checkedExecutor) -> {
                     if (checkedExecutor.moreWorkPendingAfterTaskComplete()) {

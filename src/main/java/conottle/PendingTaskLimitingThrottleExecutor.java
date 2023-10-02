@@ -43,9 +43,9 @@ final class PendingTaskLimitingThrottleExecutor implements PendingWorkAwareExecu
     }
 
     @Override
-    public boolean noPendingWorkAfterTaskComplete() {
+    public boolean moreWorkPendingAfterTaskComplete() {
         semaphore.release();
-        return semaphore.availablePermits() == permits;
+        return semaphore.availablePermits() != permits;
     }
 
     @Override
