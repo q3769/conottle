@@ -31,26 +31,31 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 /**
- * Creates pooled {@link PendingTaskCountingThrottleExecutor} instances that provide throttled async client task executions.
- * Each {@code PendingTaskCountingThrottleExecutor} instance throttles its client task concurrency at the max capacity of the
- * executor's backing thread pool.
+ * Creates pooled {@link PendingTaskCountingThrottleExecutor} instances that provide throttled async client task
+ * executions. Each {@code PendingTaskCountingThrottleExecutor} instance throttles its client task concurrency at the
+ * max capacity of the executor's backing thread pool.
  */
 final class PooledExecutorFactory extends BasePooledObjectFactory<PendingWorkAwareExecutor> {
+    private final boolean virtualThreading;
 
     private final int maxExecutorConcurrency;
 
     /**
+     * @param virtualThreading
+     *         if true, then use virtual threads to facilitate async operations.
      * @param maxExecutorConcurrency
-     *         max concurrent threads of the {@link PendingTaskCountingThrottleExecutor} instance produced by this factory
+     *         max concurrent threads of the {@link PendingWorkAwareExecutor} instance produced by this factory
      */
-    PooledExecutorFactory(int maxExecutorConcurrency) {
+    PooledExecutorFactory(boolean virtualThreading, int maxExecutorConcurrency) {
+        this.virtualThreading = virtualThreading;
         this.maxExecutorConcurrency = maxExecutorConcurrency;
     }
 
     @Override
     @NonNull
     public PendingWorkAwareExecutor create() {
-        return new PendingTaskCountingThrottleExecutor(maxExecutorConcurrency);
+        return virtualThreading ? new PendingTaskLimitingThrottleExecutor(maxExecutorConcurrency) :
+                new PendingTaskCountingThrottleExecutor(maxExecutorConcurrency);
     }
 
     @Override
@@ -60,8 +65,8 @@ final class PooledExecutorFactory extends BasePooledObjectFactory<PendingWorkAwa
     }
 
     @Override
-    public void destroyObject(PooledObject<PendingWorkAwareExecutor> pooledThrottlingExecutor,
-            DestroyMode destroyMode) throws Exception {
+    public void destroyObject(PooledObject<PendingWorkAwareExecutor> pooledThrottlingExecutor, DestroyMode destroyMode)
+            throws Exception {
         try {
             super.destroyObject(pooledThrottlingExecutor, destroyMode);
         } finally {

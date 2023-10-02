@@ -26,24 +26,37 @@ package conottle;
 
 import lombok.NonNull;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
 
-/**
- * Async task executor. Implementations reports if there are more tasks pending when informed of each task's completion,
- * and can provide throttling on max number of tasks being executed in parallel. Caller of this executor can decide
- * whether to keep or discard this executor based on reported pending work status.
- */
-interface PendingWorkAwareExecutor {
-    /**
-     * Intended to be called after each task is completed by this service.
-     *
-     * @return true if this executor has no more pending tasks after the task whose completion triggered this method
-     *         invocation
-     */
-    boolean noPendingWorkAfterTaskComplete();
+import static coco4j.CocoUtils.acquireInterruptibly;
+import static coco4j.CocoUtils.callUnchecked;
 
-    @NonNull <V> CompletableFuture<V> submit(Callable<V> task);
+final class PendingTaskLimitingThrottleExecutor implements PendingWorkAwareExecutor {
+    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+    private final Semaphore semaphore;
+    private final int permits;
 
-    void shutdown();
+    PendingTaskLimitingThrottleExecutor(int permits) {
+        this.permits = permits;
+        this.semaphore = new Semaphore(permits);
+    }
+
+    @Override
+    public boolean noPendingWorkAfterTaskComplete() {
+        semaphore.release();
+        return semaphore.availablePermits() == permits;
+    }
+
+    @Override
+    public @NonNull <V> CompletableFuture<V> submit(Callable<V> task) {
+        return CompletableFuture.supplyAsync(() -> {
+            acquireInterruptibly(semaphore);
+            return callUnchecked(task);
+        }, executorService);
+    }
+
+    @Override
+    public void shutdown() {
+        executorService.shutdown();
+    }
 }

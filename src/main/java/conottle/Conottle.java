@@ -46,6 +46,7 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
             Math.max(16, Runtime.getRuntime().availableProcessors());
     private static final int DEFAULT_MAX_CONCURRENCY_PER_CLIENT =
             Math.max(16, Runtime.getRuntime().availableProcessors());
+    private static final boolean DEFAULT_VIRTUAL_THREADING = false;
     private static final Logger logger = Logger.instance();
     private final ExecutorService adminExecutorService = Executors.newSingleThreadExecutor();
     private final ConcurrentMap<Object, PendingWorkAwareExecutor> activeThrottlingExecutors;
@@ -53,9 +54,8 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
 
     private Conottle(@NonNull Builder builder) {
         this.activeThrottlingExecutors = new ConcurrentHashMap<>(builder.maxTotalClientsInParallel);
-        this.throttlingExecutorPool =
-                new GenericObjectPool<>(new PooledExecutorFactory(builder.maxConcurrencyPerClient),
-                        getThrottlingExecutorPoolConfig(builder.maxTotalClientsInParallel));
+        this.throttlingExecutorPool = new GenericObjectPool<>(new PooledExecutorFactory(builder.virtualThreading,
+                builder.maxConcurrencyPerClient), getThrottlingExecutorPoolConfig(builder.maxTotalClientsInParallel));
         logger.atTrace().log("Success constructing: {}", this);
     }
 
@@ -129,6 +129,7 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
      */
     @NoArgsConstructor
     public static final class Builder {
+        private boolean virtualThreading = DEFAULT_VIRTUAL_THREADING;
         private int maxTotalClientsInParallel = DEFAULT_MAX_TOTAL_CLIENTS_IN_PARALLEL;
         private int maxConcurrencyPerClient = DEFAULT_MAX_CONCURRENCY_PER_CLIENT;
 
@@ -165,6 +166,11 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
                         "max concurrency per client should be greater than 1 but is: " + val);
             }
             maxConcurrencyPerClient = val;
+            return this;
+        }
+
+        public Builder virtualThreading(boolean val) {
+            virtualThreading = val;
             return this;
         }
     }
