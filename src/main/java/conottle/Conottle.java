@@ -48,8 +48,8 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
             Math.max(16, Runtime.getRuntime().availableProcessors());
     private static final Logger logger = Logger.instance();
     private final ExecutorService adminExecutorService = Executors.newSingleThreadExecutor();
-    private final ConcurrentMap<Object, TaskThrottlingExecutorService> activeThrottlingExecutors;
-    private final ObjectPool<TaskThrottlingExecutorService> throttlingExecutorPool;
+    private final ConcurrentMap<Object, PendingWorkAwareExecutor> activeThrottlingExecutors;
+    private final ObjectPool<PendingWorkAwareExecutor> throttlingExecutorPool;
 
     private Conottle(@NonNull Builder builder) {
         this.activeThrottlingExecutors = new ConcurrentHashMap<>(builder.maxTotalClientsInParallel);
@@ -60,8 +60,8 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
     }
 
     @NonNull
-    private static GenericObjectPoolConfig<TaskThrottlingExecutorService> getThrottlingExecutorPoolConfig(int poolSizeMaxTotal) {
-        GenericObjectPoolConfig<TaskThrottlingExecutorService> throttlingExecutorPoolConfig =
+    private static GenericObjectPoolConfig<PendingWorkAwareExecutor> getThrottlingExecutorPoolConfig(int poolSizeMaxTotal) {
+        GenericObjectPoolConfig<PendingWorkAwareExecutor> throttlingExecutorPoolConfig =
                 new GenericObjectPoolConfig<>();
         throttlingExecutorPoolConfig.setMaxTotal(poolSizeMaxTotal);
         return throttlingExecutorPoolConfig;
@@ -78,7 +78,7 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
     public <V> CompletableFuture<V> submit(@NonNull Callable<V> task, @NonNull Object clientId) {
         CompletableFutureHolder<V> taskCompletableFutureHolder = new CompletableFutureHolder<>();
         activeThrottlingExecutors.compute(clientId, (k, presentExecutor) -> {
-            TaskThrottlingExecutorService executor = (presentExecutor == null) ? borrowFromPool() : presentExecutor;
+            PendingWorkAwareExecutor executor = (presentExecutor == null) ? borrowFromPool() : presentExecutor;
             taskCompletableFutureHolder.setCompletableFuture(executor.submit(task));
             return executor;
         });
@@ -104,7 +104,7 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
         return activeThrottlingExecutors.size();
     }
 
-    private TaskThrottlingExecutorService borrowFromPool() {
+    private PendingWorkAwareExecutor borrowFromPool() {
         try {
             return throttlingExecutorPool.borrowObject();
         } catch (Exception e) {
@@ -112,7 +112,7 @@ public final class Conottle implements ClientTaskExecutor, AutoCloseable {
         }
     }
 
-    private void returnToPool(TaskThrottlingExecutorService throttlingExecutor) {
+    private void returnToPool(PendingWorkAwareExecutor throttlingExecutor) {
         adminExecutorService.submit(() -> {
             try {
                 throttlingExecutorPool.returnObject(throttlingExecutor);

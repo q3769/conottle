@@ -31,17 +31,17 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 /**
- * Creates pooled {@link TaskCountingExecutorService} instances that provide throttled async client task executions.
- * Each {@code TaskCountingExecutorService} instance throttles its client task concurrency at the max capacity of the
+ * Creates pooled {@link PendingTaskCountingThrottleExecutor} instances that provide throttled async client task executions.
+ * Each {@code PendingTaskCountingThrottleExecutor} instance throttles its client task concurrency at the max capacity of the
  * executor's backing thread pool.
  */
-final class PooledExecutorFactory extends BasePooledObjectFactory<TaskThrottlingExecutorService> {
+final class PooledExecutorFactory extends BasePooledObjectFactory<PendingWorkAwareExecutor> {
 
     private final int maxExecutorConcurrency;
 
     /**
      * @param maxExecutorConcurrency
-     *         max concurrent threads of the {@link TaskCountingExecutorService} instance produced by this factory
+     *         max concurrent threads of the {@link PendingTaskCountingThrottleExecutor} instance produced by this factory
      */
     PooledExecutorFactory(int maxExecutorConcurrency) {
         this.maxExecutorConcurrency = maxExecutorConcurrency;
@@ -49,18 +49,18 @@ final class PooledExecutorFactory extends BasePooledObjectFactory<TaskThrottling
 
     @Override
     @NonNull
-    public TaskThrottlingExecutorService create() {
-        return new TaskCountingExecutorService(maxExecutorConcurrency);
+    public PendingWorkAwareExecutor create() {
+        return new PendingTaskCountingThrottleExecutor(maxExecutorConcurrency);
     }
 
     @Override
     @NonNull
-    public PooledObject<TaskThrottlingExecutorService> wrap(TaskThrottlingExecutorService throttlingExecutor) {
+    public PooledObject<PendingWorkAwareExecutor> wrap(PendingWorkAwareExecutor throttlingExecutor) {
         return new DefaultPooledObject<>(throttlingExecutor);
     }
 
     @Override
-    public void destroyObject(PooledObject<TaskThrottlingExecutorService> pooledThrottlingExecutor,
+    public void destroyObject(PooledObject<PendingWorkAwareExecutor> pooledThrottlingExecutor,
             DestroyMode destroyMode) throws Exception {
         try {
             super.destroyObject(pooledThrottlingExecutor, destroyMode);

@@ -40,7 +40,7 @@ import static coco4j.CocoUtils.supplyByUnchecked;
  */
 @NotThreadSafe
 @ToString
-final class TaskCountingExecutorService implements TaskThrottlingExecutorService {
+final class PendingTaskCountingThrottleExecutor implements PendingWorkAwareExecutor {
     /**
      * Thread pool that throttles the max concurrency of this executor
      */
@@ -51,16 +51,17 @@ final class TaskCountingExecutorService implements TaskThrottlingExecutorService
      * @param taskThreadPoolCapacity
      *         the capacity of backing thread pool facilitating the async executions of this executor.
      */
-    TaskCountingExecutorService(int taskThreadPoolCapacity) {
+    PendingTaskCountingThrottleExecutor(int taskThreadPoolCapacity) {
         this.taskThreadPool = Executors.newFixedThreadPool(taskThreadPoolCapacity);
     }
 
     /**
-     * To be called on completion of each submitted task
+     * To be called on completion of each submitted task. The pending task count after decrementing the current value by
+     * one, accounting for the completion of one task. Within the synchronized context, a zero pending task count
+     * unambiguously indicates no more in-flight task pending execution on this executor.
      *
-     * @return the pending task count after decrementing the current value by one, accounting for the completion of one
-     *         task. Within the synchronized context, a return value of zero unambiguously indicates no more in-flight
-     *         task pending execution on this executor.
+     * @return true if there is no more pending tasks after the count is decremented to account for the previously
+     *         completed task
      */
     @Override
     public boolean noPendingWorkAfterTaskComplete() {
