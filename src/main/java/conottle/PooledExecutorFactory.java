@@ -31,9 +31,8 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 /**
- * Creates pooled {@link PendingTaskCountingThrottleExecutor} instances that provide throttled async client task executions.
- * Each {@code PendingTaskCountingThrottleExecutor} instance throttles its client task concurrency at the max capacity of the
- * executor's backing thread pool.
+ * Creates pooled {@link PendingWorkAwareExecutor} instances that provide throttled async client task executions. Each
+ * {@code PendingWorkAwareExecutor} instance throttles its client task concurrency
  */
 final class PooledExecutorFactory extends BasePooledObjectFactory<PendingWorkAwareExecutor> {
 
@@ -41,7 +40,8 @@ final class PooledExecutorFactory extends BasePooledObjectFactory<PendingWorkAwa
 
     /**
      * @param maxExecutorConcurrency
-     *         max concurrent threads of the {@link PendingTaskCountingThrottleExecutor} instance produced by this factory
+     *         max concurrent tasks that can be in execution of the {@link PendingWorkAwareExecutor} instance produced
+     *         by this factory
      */
     PooledExecutorFactory(int maxExecutorConcurrency) {
         this.maxExecutorConcurrency = maxExecutorConcurrency;
@@ -60,8 +60,8 @@ final class PooledExecutorFactory extends BasePooledObjectFactory<PendingWorkAwa
     }
 
     @Override
-    public void destroyObject(PooledObject<PendingWorkAwareExecutor> pooledThrottlingExecutor,
-            DestroyMode destroyMode) throws Exception {
+    public void destroyObject(PooledObject<PendingWorkAwareExecutor> pooledThrottlingExecutor, DestroyMode destroyMode)
+            throws Exception {
         try {
             super.destroyObject(pooledThrottlingExecutor, destroyMode);
         } finally {

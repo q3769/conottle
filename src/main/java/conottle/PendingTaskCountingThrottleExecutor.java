@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static coco4j.CocoUtils.supplyByUnchecked;
+import static coco4j.CocoUtils.callUnchecked;
 
 /**
  * Not thread safe: Any and all non-private methods always should be externally synchronized while multithreading.
@@ -74,8 +74,10 @@ final class PendingTaskCountingThrottleExecutor implements PendingWorkAwareExecu
     @Override
     @NonNull
     public <V> CompletableFuture<V> submit(Callable<V> task) {
-        pendingTaskCount++;
-        return CompletableFuture.supplyAsync(supplyByUnchecked(task), taskThreadPool);
+        return CompletableFuture.supplyAsync(() -> {
+            pendingTaskCount++;
+            return callUnchecked(task);
+        }, taskThreadPool);
     }
 
     @Override
