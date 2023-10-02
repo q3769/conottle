@@ -38,10 +38,10 @@ interface PendingWorkAwareExecutor {
     /**
      * Intended to be called after each task is completed by this service.
      *
-     * @return true if this executor has no more pending tasks after the task whose completion triggered this method
+     * @return true if this executor has more pending tasks after the task whose completion triggered this method
      *         invocation
      */
-    boolean noPendingWorkAfterTaskComplete();
+    boolean moreWorkPendingAfterTaskComplete();
 
     @NonNull <V> CompletableFuture<V> submit(Callable<V> task);
 

@@ -37,8 +37,8 @@ import java.util.concurrent.Callable;
 public class Task implements Callable<Task>, Runnable {
     private static final Logger trace = Logger.instance().atTrace();
     private final Object taskId;
-    private String executionThreadName;
     private final Duration minDuration;
+    private String executionThreadName;
     private Long startTimeMillis;
     private Long endTimeMillis;
 

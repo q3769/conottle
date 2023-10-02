@@ -31,9 +31,9 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 
 /**
- * Creates pooled {@link PendingTaskCountingThrottleExecutor} instances that provide throttled async client task
- * executions. Each {@code PendingTaskCountingThrottleExecutor} instance throttles its client task concurrency at the
- * max capacity of the executor's backing thread pool.
+ * Creates pooled {@link PendingTaskCountingThrottleExecutor} instances that provide throttled async client task executions.
+ * Each {@code PendingTaskCountingThrottleExecutor} instance throttles its client task concurrency at the max capacity of the
+ * executor's backing thread pool.
  */
 final class PooledExecutorFactory extends BasePooledObjectFactory<PendingWorkAwareExecutor> {
     private final boolean virtualThreading;
