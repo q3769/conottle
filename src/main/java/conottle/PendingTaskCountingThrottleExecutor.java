@@ -64,11 +64,11 @@ final class PendingTaskCountingThrottleExecutor implements PendingWorkAwareExecu
      *         completed task
      */
     @Override
-    public boolean noPendingWorkAfterTaskComplete() {
+    public boolean moreWorkPendingAfterTaskComplete() {
         if (pendingTaskCount <= 0) {
             throw new IllegalStateException("Cannot further decrement from pending task count: " + pendingTaskCount);
         }
-        return --pendingTaskCount == 0;
+        return --pendingTaskCount != 0;
     }
 
     @Override
