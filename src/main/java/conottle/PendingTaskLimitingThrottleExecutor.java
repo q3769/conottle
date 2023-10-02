@@ -32,7 +32,8 @@ import static coco4j.CocoUtils.acquireInterruptibly;
 import static coco4j.CocoUtils.callUnchecked;
 
 final class PendingTaskLimitingThrottleExecutor implements PendingWorkAwareExecutor {
-    private final ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executorService =
+            Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("client-task-virtual-thread-", 0L).factory());
     private final Semaphore semaphore;
     private final int permits;
 
