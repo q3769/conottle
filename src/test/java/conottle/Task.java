@@ -24,6 +24,7 @@
 
 package conottle;
 
+import coco4j.CocoUtils;
 import elf4j.Logger;
 import lombok.Getter;
 import lombok.ToString;
@@ -31,23 +32,19 @@ import lombok.ToString;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 
-import static org.awaitility.Awaitility.await;
-
 @ToString
 @Getter
 public class Task implements Callable<Task>, Runnable {
     private static final Logger trace = Logger.instance().atTrace();
-    private final Duration minDuration;
-    private final Duration pollInterval;
     private final Object taskId;
-    private long endTimeMillis;
+    private final Duration minDuration;
     private String executionThreadName;
-    private long startTimeMillis;
+    private Long startTimeMillis;
+    private Long endTimeMillis;
 
     public Task(Object taskId, Duration minDuration) {
         this.taskId = taskId;
         this.minDuration = minDuration;
-        this.pollInterval = Duration.ofMillis(minDuration.toMillis() + 1);
     }
 
     @Override
@@ -55,7 +52,7 @@ public class Task implements Callable<Task>, Runnable {
         this.startTimeMillis = System.currentTimeMillis();
         this.executionThreadName = Thread.currentThread().getName();
         trace.log("started {}", this);
-        await().pollInterval(pollInterval).atLeast(minDuration).until(() -> true);
+        CocoUtils.sleepInterruptibly(minDuration);
         this.endTimeMillis = System.currentTimeMillis();
         trace.log("completed {} in {}", this, this.getActualDuration());
         return this;
@@ -74,6 +71,6 @@ public class Task implements Callable<Task>, Runnable {
     }
 
     private boolean isComplete() {
-        return this.endTimeMillis != 0;
+        return this.endTimeMillis != null;
     }
 }
